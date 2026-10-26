@@ -273,7 +273,7 @@ flowchart LR
 <details>
 <summary><b>「playwright がこのリポジトリに入っていません」と出る</b></summary>
 
-撮影と採点に使う Playwright が、そのリポジトリにありません。`/tanren:studio-init` を実行するか、`npm run setup` を実行してください。
+撮影と採点に使う Playwright が、そのリポジトリにありません。`/tanren:studio-init` を実行するか、`pnpm run setup` を実行してください（npm のリポジトリなら `npm run setup`）。
 
 </details>
 

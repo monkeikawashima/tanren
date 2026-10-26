@@ -26,17 +26,14 @@ description: tanren を新しいリポジトリで使えるようにする（1�
 - `enabledPlugins`：`tanren@tanren` を true にする（このリポジトリでだけスキルと関門 hook が動くようにするため）。
 - 既存のキーはそのまま残す。JSON として読めない場合は書き換えず、人間に知らせる。
 
-## 4.5 GitHub の認証
-配布元は private リポジトリなので、裏の自動更新には git の認証ヘルパーが要る（確認の画面を出さないため、通らなければ黙って古い版のまま残る）。
-- `gh auth status` でログインを確かめる。ログインしていなければ、人間に `gh auth login` と `gh auth setup-git` を実行してもらうよう伝える（認証の操作は代わりにしない）。
-- ログインしていても `git config --get-all credential.helper` が空なら、`gh auth setup-git` を勧める。
-
 ## 5. Playwright
 撮影と採点に使う。プラグインの置き場所には node_modules がないので、このリポジトリに入れる。
-- `package.json` がなければ `{ "private": true, "type": "module" }` で作る。
-- `devDependencies` に `playwright` と `@axe-core/playwright` がなければ足す。ロックファイルに合わせて pnpm / npm / yarn を選んでインストールする（`pnpm-lock.yaml` があれば pnpm、`yarn.lock` なら yarn、どちらもなければ npm）。
-- `scripts.setup` がなければ、選んだパッケージマネージャーで「install してから `playwright install --with-deps chromium`」を足す。
-- `playwright install chromium` を実行する。ネットワークの都合で失敗したら、人間に `setup` を実行するよう伝える。
+- **パッケージマネージャーは pnpm を基本にする。** そのリポジトリにすでにロックファイルがあれば、それに合わせる（`package-lock.json` なら npm、`yarn.lock` なら yarn、`pnpm-lock.yaml` なら pnpm）。ロックファイルがなければ pnpm を使う。
+  - `pnpm --version` で入っているか確かめる。入っていなければ npm に切り替えず、人間に `corepack enable pnpm` の実行を頼む（環境の設定を変えるので、代わりにしない）。
+- `package.json` がなければ `{ "private": true, "type": "module" }` で作る。pnpm を使うなら `"packageManager": "pnpm@<pnpm --version の結果>"` も書く。
+- `devDependencies` に `playwright` と `@axe-core/playwright` がなければ、選んだパッケージマネージャーで足す（pnpm なら `pnpm add -D playwright @axe-core/playwright`）。
+- `scripts.setup` がなければ足す。pnpm なら `pnpm install && pnpm exec playwright install --with-deps chromium`（npm なら `npm install && npx playwright install --with-deps chromium`）。
+- インストールを実行する。許可されなかったとき、またはネットワークの都合で失敗したときは、人間に `! pnpm run setup`（そのリポジトリのパッケージマネージャーの setup）を実行してもらうよう伝えて先へ進む。
 
 ## 5.5 デザインシステム
 どのデザインシステムを使うかを、ここで必ず決める。`design-system` スキルの「決める」を呼ぶ（候補の提示、既定、媒体ごとの割り当て、取り込みまで、そのスキルが行う）。

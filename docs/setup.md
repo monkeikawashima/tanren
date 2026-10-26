@@ -15,7 +15,7 @@ claude.ai/code → Projects → New project
 |---|---|
 | Repository | 1 のリポジトリ |
 | Instructions | [project-instructions.md](project-instructions.md) の本文を貼る |
-| Environment | 新しく作る。Setup script に `npm ci && npx playwright install --with-deps chromium`。リニューアルの案件をやるなら、Network access を Custom にして対象サイトのドメインを足す（または Full） |
+| Environment | 新しく作る。Setup script に `corepack enable pnpm && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium`（npm のリポジトリなら `npm ci && npx playwright install --with-deps chromium`）。リニューアルの案件をやるなら、Network access を Custom にして対象サイトのドメインを足す（または Full） |
 | Connectors | Figma、Slack（通知を使うなら）、GitHub |
 | Plugins | marketplace に `monkeikawashima/tanren` を足し、`tanren` を有効にする |
 

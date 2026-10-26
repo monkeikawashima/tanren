@@ -340,7 +340,7 @@ for (const item of items) {
 await browser.close();
 
 checks.brokenLinks = [...new Set(checks.brokenLinks)];
-if (!AxeBuilder) checks.a11y.push('（@axe-core/playwright が未インストールのためコントラスト検査を省略。npm run setup を実行）');
+if (!AxeBuilder) checks.a11y.push('（@axe-core/playwright が未インストールのためコントラスト検査を省略。pnpm run setup を実行）');
 fs.writeFileSync(path.join(out, 'checks.json'), JSON.stringify(checks, null, 2) + '\n');
 const section = (title, xs) => `### ${title}\n${xs.length ? xs.map((x) => `- ${x}`).join('\n') : '- なし'}`;
 lines.push('', '## 機械チェック（上の7つは1件でもあれば不合格）',
