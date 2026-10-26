@@ -15,8 +15,15 @@
       "Bash(node */scripts/capture.mjs*)",
       "Bash(node */scripts/ds-build.mjs*)",
       "Bash(node */scripts/ds-extract.mjs*)",
+      "Bash(node */scripts/job-state.mjs*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
+      "Bash(git switch:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr comment:*)",
       "mcp__playwright"
     ]
   },

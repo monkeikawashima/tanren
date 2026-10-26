@@ -5,6 +5,8 @@ designer と figma-builder が毎回読む。どのリポジトリで使って�
 ## 置き場所
 - エンジン（agents・scripts・採点基準・手順書）は `${CLAUDE_PLUGIN_ROOT}/` にある。
 - 案件は `jobs/<id>/`、審美眼・検証セット・採点ログ・設定は `studio/`、hook の状態は `.loop/` にある（どれも使う側のリポジトリ）。
+- 1件の依頼の中は、媒体ごとのフォルダ `jobs/<id>/<媒体>/` に分かれる（例：`jobs/<id>/lp/`、`jobs/<id>/banner/`）。このファイルとスタッフの手順書で `jobs/<id>/` と書いてあるところは、この媒体のフォルダを指す。依頼フォルダの直下には、依頼全体の `brief.md`・`preview.html`・`delivery.json`・`summary.json` だけを置く。
+- 自分の媒体のフォルダの外には書かない（同じ依頼のほかの媒体は、別の designer が並行して作っている）。
 
 ## 成果物
 - 成果物は `jobs/<id>/work/<deliverable>/index.html`（HTML + CSS + 必要なら SVG / JS）。外部 CSS フレームワークは使わない。プロトタイプは複数の HTML を相対リンクでつなぐ。

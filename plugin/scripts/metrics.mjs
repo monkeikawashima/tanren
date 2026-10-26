@@ -9,23 +9,28 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (p, d) => { try { return fs.readFileSync(path.join(root, p), 'utf8'); } catch { return d; } };
 const runs = read('studio/metrics/runs.jsonl', '').split('\n').filter(Boolean).map((l) => JSON.parse(l));
-const jobs = fs.existsSync(path.join(root, 'jobs'))
-  ? fs.readdirSync(path.join(root, 'jobs')).filter((d) => fs.existsSync(path.join(root, 'jobs', d, 'summary.json')))
-  : [];
+// 媒体ごとのフォルダ（jobs/<id>/<媒体>/）に分かれた案件は、媒体ごとに1行にする
+const jobs = [];
+for (const d of fs.existsSync(path.join(root, 'jobs')) ? fs.readdirSync(path.join(root, 'jobs')) : []) {
+  const s = JSON.parse(read(`jobs/${d}/summary.json`, 'null'));
+  if (!s) continue;
+  if (s.parts?.length) for (const p of s.parts) jobs.push({ dir: p.path, name: `${d}/${path.basename(p.path)}`, finished: s.finished_at });
+  else jobs.push({ dir: `jobs/${d}`, name: d, finished: s.finished_at });
+}
 
 const month = (ts) => ts.slice(0, 7);
 const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const mean4 = (s) => { const v = ['design', 'originality', 'craft', 'function'].map((k) => s?.[k]).filter((x) => typeof x === 'number'); return v.length === 4 ? avg(v) : null; };
 
 // 案件ごと
-const perJob = jobs.map((d) => {
-  const summary = JSON.parse(read(`jobs/${d}/summary.json`, '{}'));
-  const review = JSON.parse(read(`jobs/${d}/review.json`, '{"rounds":[]}'));
-  const jr = runs.filter((r) => r.job === `jobs/${d}` && r.phase === 'build');
+const perJob = jobs.map(({ dir, name, finished }) => {
+  const summary = JSON.parse(read(`${dir}/summary.json`, '{}'));
+  const review = JSON.parse(read(`${dir}/review.json`, '{"rounds":[]}'));
+  const jr = runs.filter((r) => r.job === dir && r.phase === 'build');
   const first = jr.find((r) => !r.machine && r.scores && mean4(r.scores) !== null);
   const outcome = review.rounds?.length ? review.rounds[review.rounds.length - 1].outcome : null;
   return {
-    job: d, medium: summary.medium, month: month(summary.finished_at || new Date().toISOString()),
+    job: name, medium: summary.medium, month: month(summary.finished_at || finished || new Date().toISOString()),
     result: summary.result, buildIterations: summary.build?.passed_at ?? summary.build?.iteration ?? null,
     firstScore: first ? mean4(first.scores) : null,
     firstPass: jr.length ? jr[0].verdict === 'PASS' : null,

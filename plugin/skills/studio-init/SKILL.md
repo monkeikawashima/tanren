@@ -35,6 +35,12 @@ description: tanren を新しいリポジトリで使えるようにする（1�
 - `scripts.setup` がなければ足す。pnpm なら `pnpm install && pnpm exec playwright install --with-deps chromium`（npm なら `npm install && npx playwright install --with-deps chromium`）。
 - インストールを実行する。許可されなかったとき、またはネットワークの都合で失敗したときは、人間に `! pnpm run setup`（そのリポジトリのパッケージマネージャーの setup）を実行してもらうよう伝えて先へ進む。
 
+## 5.2 PR を作れるか
+納品で PR を作るので、ここで確かめる（直すのは人間。代わりにログインしない）。
+- `git remote -v` に GitHub のリモートがあるか。なければ、報告に「GitHub のリモートがないので PR を作れない」と書く。
+- `gh auth status` が通るか。gh がない、またはログインしていなければ、人間に `! gh auth login` を頼む（クラウドのスレッドでは GitHub のコネクタで作るので要らない）。
+- 既に `.claude/settings.json` があるリポジトリで tanren を更新したときも、4 の許可設定を合わせ直す（push と PR 作成の許可が後から増えたため）。
+
 ## 5.5 デザインシステム
 どのデザインシステムを使うかを、ここで必ず決める。`design-system` スキルの「決める」を呼ぶ（候補の提示、既定、媒体ごとの割り当て、取り込みまで、そのスキルが行う）。
 - 取り込んだものが色・書体・部品の正本になる（審美眼より優先。ただし推定の値は参考）。写しをリポジトリに残すのは、取り込み元を読めない環境（クラウド・CI・ほかの人のアカウント）でも同じものを使うため。

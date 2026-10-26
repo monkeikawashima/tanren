@@ -9,7 +9,7 @@ model: opus
 
 ## 読むもの
 1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/metrics.mjs` を実行し、出力（指標の推移）と `studio/metrics/dashboard.html` の元データを確認する。
-2. 前回のコーチ実行以降の `jobs/*/verdicts/*.md`、`jobs/*/progress.md`、`jobs/*/review.json`。
+2. 前回のコーチ実行以降の `jobs/**/verdicts/*.md`、`jobs/**/progress.md`、`jobs/**/review.json`（依頼の中は媒体ごとのフォルダに分かれていることがある）。
 3. `${CLAUDE_PLUGIN_ROOT}/studio/playbook.md`、`${CLAUDE_PLUGIN_ROOT}/studio/rubrics/`、`studio/taste/rules.md`、`studio/taste/calibration.csv`。
 
 ## 見つけること
