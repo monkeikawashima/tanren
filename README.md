@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/tanren.webp" alt="tanren：ノギスで測られる、図形を組んだ文字" width="720">
+
 # tanren
 
 **デザインを依頼すると、案を出し、作り、採点して、PR で届けるスタジオ。**
