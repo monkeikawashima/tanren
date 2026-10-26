@@ -2,7 +2,8 @@
   "name": "tanren",
   "description": "デザインの依頼から方向性の探索、制作、採点、ユーザーテスト、Figma 書き出し、PR までを自動で回すスタジオ。採点基準と手順書は共通、審美眼と採点ログは使う側のリポジトリに積む。",
   "author": {
-    "name": "monkeikawashima"
+    "name": "monkeikawashima",
+    "url": "https://x.com/washimaka"
   },
   "repository": "https://github.com/monkeikawashima/tanren",
   "keywords": ["design", "ui-ux", "review-loop", "figma", "playwright"]

@@ -392,7 +392,7 @@ plugins: tanren@tanren
 
 <div align="center">
 
-[更新履歴](CHANGELOG.md) · [ライセンス](LICENSE)
+[更新履歴](CHANGELOG.md) · [ライセンス](LICENSE) · 作者 [@washimaka](https://x.com/washimaka)
 
 Copyright © 2026 HAVU LLC. 誰でも使えます。改変・再配布・販売はできません。
 
