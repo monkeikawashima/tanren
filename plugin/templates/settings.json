@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash(node */scripts/shoot.mjs*)",
+      "Bash(node */scripts/export-for-figma.mjs*)",
+      "Bash(node */scripts/post-to-figma.mjs*)",
+      "Bash(node */scripts/crawl.mjs*)",
+      "Bash(node */scripts/metrics.mjs*)",
+      "Bash(node */scripts/bench.mjs*)",
+      "Bash(node */scripts/capture.mjs*)",
+      "Bash(node */scripts/ds-build.mjs*)",
+      "Bash(node */scripts/ds-extract.mjs*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "mcp__playwright"
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "tanren": {
+      "source": { "source": "github", "repo": "monkeikawashima/tanren" },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "tanren@tanren": true
+  }
+}

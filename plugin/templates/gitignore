@@ -1,0 +1,9 @@
+# tanren
+node_modules/
+.loop/
+jobs/*/shots/*
+!jobs/*/shots/final/
+jobs/*/figma/export/
+jobs/*/explore/
+studio/benchmark/results/
+.playwright-mcp/

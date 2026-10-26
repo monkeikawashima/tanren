@@ -1,0 +1,15 @@
+{
+  "name": "tanren",
+  "description": "tanren のエンジン（tanren plugin）の配布元",
+  "owner": {
+    "name": "monkeikawashima",
+    "url": "https://github.com/monkeikawashima"
+  },
+  "plugins": [
+    {
+      "name": "tanren",
+      "source": "./plugin",
+      "description": "デザインの依頼から方向性の探索、制作、採点、ユーザーテスト、Figma 書き出し、PR までを自動で回すスタジオ"
+    }
+  ]
+}

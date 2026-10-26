@@ -1,0 +1,16 @@
+{
+  "description": "関門 hook。.loop/state.json が running / delivering のときだけ合否を判定して差し戻す",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/design-gate.mjs\"",
+            "timeout": 1500
+          }
+        ]
+      }
+    ]
+  }
+}

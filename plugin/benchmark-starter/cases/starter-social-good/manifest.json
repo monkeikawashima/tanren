@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "social-1080",
+      "file": "work/social/index.html",
+      "viewports": [
+        {
+          "w": 1080,
+          "h": 1080
+        }
+      ],
+      "scale": 1,
+      "key": true
+    }
+  ]
+}

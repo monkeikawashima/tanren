@@ -1,0 +1,32 @@
+{
+  "$note": "スタジオ全体の設定。空欄は使わない機能。",
+  "defaults": {
+    "pass_score": 8,
+    "directions": 3,
+    "build_max": 10,
+    "usertest_max": 3,
+    "figma_max": 5,
+    "human_pick_first": 5
+  },
+  "design_systems": {
+    "$note": "このリポジトリのデザインシステム。status は unset（未設定）/ none（使わない）/ set。媒体ごとの割り当ては by_medium（null は使わない）、なければ default。形は plugin の studio/design-system-format.md。確認と変更は /tanren:design-system",
+    "status": "unset",
+    "default": null,
+    "by_medium": {},
+    "systems": {}
+  },
+  "figma": {
+    "enabled": true,
+    "plan_key": "",
+    "project_url": "",
+    "library_file_url": ""
+  },
+  "notify": {
+    "slack_channel": "",
+    "mention": ""
+  },
+  "budget": {
+    "critic_usd_per_run": 3
+  },
+  "interactive_media": ["ui", "web", "prototype", "renewal", "email"]
+}

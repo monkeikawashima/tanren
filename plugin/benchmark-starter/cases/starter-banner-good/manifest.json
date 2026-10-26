@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "banner-300x250",
+      "file": "work/banner/index.html",
+      "viewports": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "scale": 2,
+      "key": true
+    }
+  ]
+}

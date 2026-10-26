@@ -1,0 +1,15 @@
+{
+  "missing": [],
+  "overflow": [],
+  "contrast": [
+    "social-1080@1080x1080: [color-contrast] span Element has insufficient color contrast of 2.59 (foreground color: #ffffff, background color: #ff6fa8, font size: 30.0pt (40px), font weight: bold). Expected contrast ratio of 3:1"
+  ],
+  "minFont": [],
+  "brokenLinks": [],
+  "fonts": [],
+  "type": [],
+  "style": [],
+  "provisional": [],
+  "a11y": [],
+  "jsErrors": []
+}

@@ -1,0 +1,200 @@
+/* tanren の仮素材。支給素材やコピーが届くまでの仮置きに使う。
+   色の既定値は、どのブランドにも寄らない中立のグレーと墨色。罫線と面で用途・比率・中身を示す。
+   色は --ph-* を上書きすると、案件のデザインシステムやトークンに寄せられる（例：.ph { --ph-surface: var(--ds-color-sunken); }）。
+   書体はページのものを引き継ぐ。部品のマークアップは snippets.html にある。 */
+
+:root {
+  --ph-surface: #f4f4f5;   /* 仮素材の面 */
+  --ph-border: #e5e5e6;    /* 面の罫線 */
+  --ph-border-strong: #d5d5d7;
+  --ph-card: #ffffff;      /* 製品の画面・差し込み口の地 */
+  --ph-ink: #232324;       /* 濃い要素（製品の画面のボタンなど） */
+  --ph-text: #3a3a3c;      /* 説明 */
+  --ph-meta: #6b6b70;      /* 上段のラベル */
+  --ph-icon: #9a9aa0;      /* 線のアイコン */
+  --ph-bar: #e5e5e6;       /* 製品の画面の骨組み */
+  --ph-radius: 10px;
+  --ph-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* 写真・動画・イラストの面 */
+.ph {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 14px 16px;
+  background: var(--ph-surface);
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius);
+  font-family: inherit;
+  aspect-ratio: var(--ph-ratio, 16 / 9);
+}
+.ph__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  color: var(--ph-meta);
+}
+.ph__ratio { font-family: var(--ph-mono); font-weight: 400; letter-spacing: 0; }
+.ph__icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  color: var(--ph-icon);
+}
+.ph__cap { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ph-text); }
+.ph__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ph-card);
+  border: 1px solid var(--ph-border);
+  color: var(--ph-ink);
+}
+/* 小さい面（バナー・カードのサムネイル） */
+.ph--sm { padding: 10px 12px; }
+.ph--sm .ph__top { font-size: 10px; }
+.ph--sm .ph__cap { font-size: 11px; line-height: 1.4; }
+.ph--sm .ph__icon { width: 22px; height: 22px; }
+/* 角を付けない（全面に敷くとき） */
+.ph--flush { border-radius: 0; border-width: 0 0 1px; }
+
+/* 製品の画面（中身は見本の骨組み） */
+.ph-screen {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ph-card);
+  border: 1px solid var(--ph-border);
+  border-radius: var(--ph-radius);
+  aspect-ratio: var(--ph-ratio, 12 / 7);
+}
+.ph-screen__bar {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--ph-border);
+}
+.ph-screen__body { flex: 1; display: flex; min-height: 0; }
+.ph-screen__side {
+  width: 22%;
+  flex: none;
+  box-sizing: border-box;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid var(--ph-border);
+}
+.ph-screen__main { flex: 1; box-sizing: border-box; padding: 24px 28px; min-width: 0; }
+.ph-screen__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.ph-screen__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--ph-border);
+}
+.ph-screen__row:last-child { border-bottom: 1px solid var(--ph-border); }
+.ph-bar { height: 8px; border-radius: 999px; background: var(--ph-bar); flex: none; }
+.ph-bar--strong { background: var(--ph-border-strong); }
+.ph-bar--title { height: 14px; background: var(--ph-border-strong); }
+.ph-dot { width: 16px; height: 16px; flex: none; box-sizing: border-box; border-radius: 999px; border: 1.5px solid var(--ph-icon); }
+.ph-dot--on { border: 0; background: var(--ph-ink); }
+.ph-chip { width: 18px; height: 18px; flex: none; border-radius: 4px; background: var(--ph-ink); }
+.ph-btn { height: 28px; width: 88px; flex: none; border-radius: 6px; background: var(--ph-ink); }
+.ph-spacer { flex: 1; }
+
+/* アバター */
+.ph-avatars { display: flex; }
+.ph-avatar {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ph-surface);
+  border: 2px solid var(--ph-card);
+  box-shadow: 0 0 0 1px var(--ph-border);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ph-text);
+}
+.ph-avatar + .ph-avatar { margin-left: -10px; }
+.ph-avatar--dark { background: var(--ph-ink); color: var(--ph-card); box-shadow: none; }
+
+/* ロゴの差し込み口 */
+.ph-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--ph-border-strong);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ph-ink);
+}
+.ph-logo::before { content: ""; width: 14px; height: 14px; border-radius: 3px; background: var(--ph-ink); }
+
+/* 仮のコピーに添える札 */
+.ph-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  margin-left: 0.5em;
+  padding: 0 8px;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: var(--ph-surface);
+  border: 1px solid var(--ph-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--ph-meta);
+  font-feature-settings: normal;
+}
+
+/* 要コピー：事実が要るので仮でも書けない所の差し込み口 */
+.ph-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ph-border-strong);
+  background: var(--ph-card);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ph-meta);
+}
+.ph-slot svg { width: 14px; height: 14px; flex: none; }
