@@ -3,5 +3,5 @@
   "human_outcome": "accepted",
   "pass_score": 8,
   "source": "starter",
-  "note": "playbook の文字組みに沿い、案件固有の判断がある例"
+  "note": "題の「現在地」を地図の格子と現在地のマーカーで見せた例。文字は比率 1.33 の5段で、日時と場所も小さくしすぎない"
 }

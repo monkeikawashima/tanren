@@ -97,8 +97,9 @@ async function typeCheck(page, ui) {
         const perLine = inner / (size * (1 + (parseFloat(cs.letterSpacing) || 0) / size));
         if (perLine > 45) hard.push(`${label} 1行が約 ${Math.round(perLine)} 字（本文は 40 字まで）`);
       }
-      // 見出し：24px 以上の和文で、最後の行が1〜2文字だけ
+      // 見出し：24px 以上の和文で、最後の行が1〜2文字だけ。縦組みは列ごとに数える（左右の位置で行を分ける）
       if (size >= 24 && all.length >= 4) {
+        const vertical = cs.writingMode.startsWith('vertical') || cs.writingMode.startsWith('sideways');
         const tops = [];
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
         while (walker.nextNode()) {
@@ -108,7 +109,7 @@ async function typeCheck(page, ui) {
             const range = document.createRange();
             range.setStart(n, i); range.setEnd(n, i + 1);
             const rr = range.getBoundingClientRect();
-            if (rr.width) tops.push(rr.top);
+            if (rr.width) tops.push(vertical ? rr.left : rr.top);
           }
         }
         const lines = [];

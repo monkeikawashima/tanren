@@ -1,16 +1,49 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{width:1440px;height:900px;background:#efe9e0;color:#2a2521;font-family:"Zen Kaku Gothic New",sans-serif;overflow:hidden}
-header{display:flex;justify-content:space-between;align-items:center;padding:36px 72px}
+<!-- 「使うほどに色が深まる」を、写真の上に置いた5段の木の色見本で見せる。文字の段階は 14/18/24/32/56（比率 1.33） -->
+<style>*{box-sizing:border-box;margin:0;padding:0}
+:root{--paper:#efe9e0;--ink:#2a2521;--sub:#5a5048;--photo:#cbbba5;--m:96px;
+  --w1:#ead9bd;--w2:#d9b98e;--w3:#bf9262;--w4:#9a6a3e;--w5:#6e4626}
+body{background:var(--paper);color:var(--ink);font-family:"Zen Kaku Gothic New",sans-serif;line-break:strict}
+a{color:inherit;text-decoration:none}
+.fv{position:relative;height:100vh;display:grid;grid-template-columns:1fr 640px}
+header{position:absolute;inset:0 0 auto 0;display:flex;justify-content:space-between;align-items:center;padding:40px var(--m);z-index:2}
 .logo{font-family:"Shippori Mincho B1",serif;font-size:24px;font-weight:700;letter-spacing:.06em}
 nav{display:flex;gap:40px;font-size:14px;font-weight:500;letter-spacing:.06em}
-main{display:grid;grid-template-columns:1fr 600px;gap:96px;padding:56px 72px 0 120px;align-items:start}
-h1{font-family:"Shippori Mincho B1",serif;font-weight:500;font-size:64px;line-height:1.38;letter-spacing:.04em;font-feature-settings:"palt";margin-top:64px}
-.lead{margin-top:40px;max-width:22em;word-break:auto-phrase;font-size:16px;line-height:1.95;letter-spacing:.04em}
-.cta{margin-top:56px;display:flex;gap:32px;align-items:center}
-.btn{background:#2a2521;color:#efe9e0;padding:18px 40px;font-size:15px;font-weight:500;letter-spacing:.08em}
-.link{font-size:15px;font-weight:500;letter-spacing:.06em;border-bottom:1px solid #2a2521;padding-bottom:4px}
-.img{height:640px;background:#cdbfae;display:flex;align-items:flex-end;padding:20px;font-size:12px;color:#463c34;letter-spacing:.06em}</style></head>
-<body><header><p class="logo">kinome</p><nav><span>作品</span><span>工房について</span><span>お問い合わせ</span></nav></header>
-<main><div><h1>暮らしに、<br>長く使える<br>木の道具を。</h1><p class="lead">一つひとつ手で削り、使うほどに色が深まる器と家具をつくっています。</p>
-<div class="cta"><span class="btn">作品を見る</span></div></div><div class="img">画像：工房の作業台と削りかけの器</div></main></body></html>
+nav a{padding-bottom:4px;border-bottom:1px solid currentColor}
+.menu{display:none;font-size:14px;font-weight:500;letter-spacing:.06em;padding-bottom:4px;border-bottom:1px solid currentColor}
+.copy{padding:240px 64px 96px var(--m)}
+h1{font-family:"Shippori Mincho B1",serif;font-weight:500;font-size:56px;line-height:1.4;letter-spacing:.02em;font-feature-settings:"palt";word-break:auto-phrase}
+.lead{margin-top:32px;max-width:36em;font-size:18px;line-height:1.8;letter-spacing:.04em;word-break:auto-phrase}
+.btn{display:inline-block;margin-top:56px;background:var(--ink);color:var(--paper);padding:20px 40px;font-size:18px;font-weight:500;letter-spacing:.08em}
+/* 写真の場所（仮）。右端と上下は画面の端まで */
+.photo{position:relative;background:var(--photo);display:flex;flex-direction:column;justify-content:flex-end;padding:40px}
+.photo .cap{position:absolute;top:120px;left:40px;font-size:14px;color:#3f362e;letter-spacing:.04em}
+.aging{background:var(--paper);padding:24px 32px 24px;width:400px}
+.aging p{font-family:"Shippori Mincho B1",serif;font-size:24px;font-weight:500;letter-spacing:.02em;font-feature-settings:"palt"}
+.chips{margin-top:16px;display:grid;grid-template-columns:repeat(5,1fr);height:48px}
+.chips i:nth-child(1){background:var(--w1)}.chips i:nth-child(2){background:var(--w2)}.chips i:nth-child(3){background:var(--w3)}.chips i:nth-child(4){background:var(--w4)}.chips i:nth-child(5){background:var(--w5)}
+.ends{margin-top:8px;display:flex;justify-content:space-between;font-size:14px;color:var(--sub);letter-spacing:.04em}
+@media (max-width:767px){
+  :root{--m:24px}
+  .fv{display:flex;flex-direction:column}
+  header{position:static;padding:20px var(--m)}
+  nav{display:none}
+  .menu{display:inline-block}
+  .copy{padding:32px var(--m) 40px}
+  h1{font-size:32px}
+  .lead{margin-top:24px;font-size:16px;max-width:22em}
+  .btn{margin-top:32px;padding:16px 32px;font-size:16px}
+  .photo{flex:1;min-height:0;padding:16px 24px}
+  .photo .cap{top:16px;left:24px}
+  .aging{width:auto;padding:12px 16px}
+  .aging p{font-size:18px}
+  .chips{margin-top:8px;height:24px}
+}</style></head>
+<body><section class="fv">
+<header><p class="logo">kinome</p><nav><a href="#works">作品</a><a href="#works">工房について</a><a href="#works">お問い合わせ</a></nav><a class="menu" href="#works">メニュー</a></header>
+<div class="copy"><h1>暮らしに、<br>長く使える<br>木の道具を。</h1><p class="lead">一つひとつ手で削り、使うほどに色が深まる器と家具をつくっています。</p>
+<a class="btn" href="#works">作品を見る</a></div>
+<div class="photo" data-provisional="image" data-label="画像：工房の作業台と削りかけの器" role="img" aria-label="仮の画像：工房の作業台と削りかけの器"><p class="cap">仮　画像：工房の作業台と削りかけの器</p>
+<div class="aging"><p>使うほどに、色が深まる。</p><div class="chips" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="ends"><span>使いはじめ</span><span>使い込んだ色</span></div></div></div>
+</section></body></html>
