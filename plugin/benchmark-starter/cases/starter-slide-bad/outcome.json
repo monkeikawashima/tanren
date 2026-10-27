@@ -1,0 +1,7 @@
+{
+  "medium": "slide",
+  "human_outcome": "major",
+  "pass_score": 8,
+  "source": "starter",
+  "note": "社内テンプレートによくある型。崩れはないが、名詞だけのタイトル、16px の箇条書きの壁、brief にない数字（週ごとの値・満足度・解約率）、全系列に別の色が付いたグラフで作り直しになる例"
+}

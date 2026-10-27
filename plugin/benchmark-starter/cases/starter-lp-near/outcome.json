@@ -1,0 +1,7 @@
+{
+  "medium": "web",
+  "human_outcome": "major",
+  "pass_score": 8,
+  "source": "starter",
+  "note": "境目の例。余白と書体は整っていて雰囲気はあるが、キャッチを brief と違う言葉に書き換え、説明文と主 CTA（作品を見る）がファーストビューにない。contract の合格条件を満たさないので作り直しになる"
+}

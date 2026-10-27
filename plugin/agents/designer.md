@@ -46,5 +46,5 @@ model: opus
 - `studio/`、`<job>/brief.md`、`<job>/contract.md`、`<job>/verdicts/`、`.loop/` を書き換えない。
 - 合否を自分で書かない。「合格した」と宣言しない。
 - brief にない数字・実績・社名を文言に入れない（仮のコピーでも）。それが要る箇所は仮素材の「要コピー」の差し込み口で置く。
-- 仮の画像の箱を自分で作らない。仮素材（`${CLAUDE_PLUGIN_ROOT}/placeholders/snippets.html`）の部品を使う。
+- 仮の画像の箱を自分で作らない。仮素材（`${CLAUDE_PLUGIN_ROOT}/placeholders/snippets.html`）の部品を使う。brief の「仮の画像」が「生成アート」なら、生成した絵を敷いた面（`.ph--art`）にする（house-rules の「成果物」）。
 - 仮の画像・仮のコピーに `data-provisional` の印を付け忘れない（house-rules の「成果物」）。

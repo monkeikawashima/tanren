@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><style>
+  html, body { margin: 0; }
+  body { width: 1920px; height: 1080px; background: #ffffff; color: #222222; font-family: "Hiragino Sans", sans-serif; }
+  .slide { box-sizing: border-box; width: 1920px; height: 1080px; padding: 40px 48px; }
+  header { display: flex; align-items: center; gap: 16px; border-bottom: 4px solid #1e4fa3; padding-bottom: 16px; }
+  header .num { background: #1e4fa3; color: #ffffff; font-size: 24px; font-weight: 700; padding: 6px 14px; }
+  h1 { margin: 0; font-size: 40px; font-weight: 700; color: #1e4fa3; }
+  .cols { display: grid; grid-template-columns: 600px 1fr; gap: 96px; margin-top: 36px; }
+  ul { margin: 0; padding-left: 1.2em; font-size: 16px; line-height: 1.7; }
+  li { margin-bottom: 10px; }
+  li ul { margin-top: 8px; }
+  h2 { font-size: 22px; margin: 0 0 16px; color: #1e4fa3; }
+  .chart { display: flex; align-items: flex-end; gap: 28px; height: 420px; border-left: 2px solid #999999; border-bottom: 2px solid #999999; padding: 0 24px; }
+  .chart div { width: 90px; color: #ffffff; font-size: 18px; font-weight: 700; text-align: center; padding-top: 8px; box-sizing: border-box; }
+  .labels { display: flex; gap: 28px; padding: 8px 24px 0; font-size: 16px; }
+  .labels span { width: 90px; text-align: center; }
+  .note { margin-top: 24px; font-size: 16px; color: #666666; }
+</style></head><body>
+<section class="slide">
+  <header><span class="num">3</span><h1>試行結果について</h1></header>
+  <div class="cols">
+    <div>
+      <h2>■ 概要</h2>
+      <ul>
+        <li>9月の4週間、サポート窓口で一次回答の自動化を試行した
+          <ul><li>対象：問い合わせ 1,240 件</li><li>対象チャネル：メール、問い合わせフォーム、チャット</li></ul></li>
+        <li>平均返信時間は 6.2 時間から 1.5 時間に短縮された</li>
+        <li>担当者が最初の返信を書く件数は半分以下になった</li>
+        <li>顧客満足度は 4.6 に向上し、解約率も 12% 改善した</li>
+        <li>一部の問い合わせでは自動回答の内容が不十分なケースがあり、担当者による追加対応が必要だった</li>
+        <li>今後はテンプレートの拡充と、対象チャネルの拡大を検討する</li>
+        <li>次回の報告では、担当者の作業時間の変化についても報告予定</li>
+      </ul>
+    </div>
+    <div>
+      <h2>■ 週ごとの平均返信時間</h2>
+      <div class="chart">
+        <div style="height: 92%; background: #b8322f;">5.8</div>
+        <div style="height: 60%; background: #a35a00;">3.9</div>
+        <div style="height: 38%; background: #2b7a37;">2.4</div>
+        <div style="height: 22%; background: #2559a8;">1.5</div>
+      </div>
+      <div class="labels"><span>1週目</span><span>2週目</span><span>3週目</span><span>4週目</span></div>
+      <p class="note">※ 自動化対象の問い合わせのみ集計。満足度はアンケート回答者のみ。</p>
+    </div>
+  </div>
+</section>
+</body></html>

@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "slide-3",
+      "file": "work/slide/index.html",
+      "viewports": [
+        {
+          "w": 1920,
+          "h": 1080
+        }
+      ],
+      "scale": 1,
+      "key": true
+    }
+  ]
+}

@@ -31,6 +31,6 @@ librarian は taste の更新を別 PR で出す。
 2. `<part>/contract.md` の末尾に `## レビューで追加された合格条件（<日付>）` を足し、指摘を確かめられる条件に直して書く。critic は次の採点からこれも見る。
 3. 案件の PR のブランチに切り替える（`jobs/<id>/delivery.json` の `branch`、なければ PR のブランチ。`git switch <ブランチ>` のあと `git pull`）。修正の commit が PR に届くようにするため。
    そのうえで `node ${CLAUDE_PLUGIN_ROOT}/scripts/job-state.mjs --revise jobs/<id> --parts <直す媒体のフォルダ名をカンマ区切り>` を実行して（分かれていない昔の案件なら `--parts` は付けない）、`.loop/state.json` を修正回の状態にする（status `running`・phase `build`。前の回の結果とエラーの回数を消し、各工程の上限を「今の回数 + 既定の上限」にする。`.loop/` がない別の環境でも、案件フォルダから作り直せる）。Figma コネクタがこのセッションで使えないなら `--figma off` を付ける。Figma は作り直さず、修正回としてその場で直る。
-   - 指摘が「デザインシステムを新しいもの（または別のもの）にして」なら、`design-job` の「0. 案件を作る」の 5 と同じ手順で `<part>/assets/ds/` を取り直してから（別のものなら brief の「デザインシステム」欄も書き換えて）、修正リストに「新しいデザインシステムに合わせる」を足す。
+   - 指摘が「デザインシステムを新しいもの（または別のもの）にして」なら、`design-job` の「0. 案件を作る」の 6 と同じ手順で `<part>/assets/ds/` を取り直してから（別のものなら brief の「デザインシステム」欄も書き換えて）、修正リストに「新しいデザインシステムに合わせる」を足す。
 4. 直す媒体ごとに designer サブエージェントを呼ぶ（1つのメッセージで同時に）。指示は「修正モード。<part>/verdicts/human-<NN>.md を上から全部直す」。
 5. 2行で要約してターンを終える。以降は design-job の「3. 磨き」「4. 納品」と同じく関門 hook が回す（直す媒体を順に採点し、最後に1回だけ納品する）。納品では新しい PR を作らず、同じ PR に push してコメントで結果を返す（hook は `delivery.json` の PR に最新の commit が届いているかを確かめる）。プレビューは `jobs/<id>/artifact.json` の URL を Artifact ツールで先に read し、同じ URL へ publish し直して更新する（新しい Artifact を作らない）。

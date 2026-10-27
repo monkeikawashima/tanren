@@ -5,6 +5,8 @@
   - どの部品にも data-provisional と data-label を付ける。撮影のときに一覧になり、PR と Figma の 00 Review に載る。
   - 比率は style="--ph-ratio: 4 / 3" で変える。色は --ph-* を上書きする（placeholders.css の先頭）。
   - 「画像：〇〇」には、何の画像が入るかを具体的に書く。
+  - 案件の「仮の画像」が「生成アート」なら、写真の面は .ph--art にして、scripts/placeholder-art.mjs が作った
+    assets/placeholders/art/<images.json の id>.svg を <img class="ph__art"> で敷く（下の「生成アート」）。
 -->
 <html lang="ja">
 <head>
@@ -46,6 +48,14 @@
     <div class="ph__top"><span>PHOTO</span><span class="ph__ratio">8:3</span></div>
     <svg class="ph__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
     <p class="ph__cap">画像：勉強会の様子</p>
+  </div>
+</div>
+
+<h2>生成アート（案件の「仮の画像」が生成アートのとき。src は成果物からの相対パス）</h2>
+<div class="row">
+  <div class="ph ph--art" style="width: 312px; --ph-ratio: 16 / 9" data-provisional="image" data-label="画像：店内の様子" role="img" aria-label="仮の画像：店内の様子">
+    <img class="ph__art" src="../../assets/placeholders/art/hero.svg" alt="">
+    <p class="ph__cap">画像：店内の様子</p>
   </div>
 </div>
 

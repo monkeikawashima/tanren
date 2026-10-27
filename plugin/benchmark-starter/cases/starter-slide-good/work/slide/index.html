@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>月次報告</title><style>
+  html, body { margin: 0; }
+  body { width: 1920px; height: 1080px; background: #f7f6f2; color: #1c1c1c; font-family: "Hiragino Sans", sans-serif; }
+  /* 文字サイズは 18 / 24 / 28 / 52 / 80 の5段 */
+  .slide { box-sizing: border-box; width: 1920px; height: 1080px; padding: 96px 120px; display: flex; flex-direction: column; }
+  .eyebrow { font-size: 24px; letter-spacing: .08em; color: #5c5a55; }
+  h1 { margin: 20px 0 0; font-size: 52px; line-height: 1.45; font-weight: 600; }
+  /* 棒の範囲は 1536px = 6.2時間（1時間 ≒ 247.7px）。右端はフッターの罫線と同じ x=1800 */
+  .chart { --h: calc(1536px / 6.2); margin-top: 80px; padding-left: 144px; }
+  .axis { position: relative; height: 36px; border-bottom: 1px solid #b9b5ab; }
+  .axis span { position: absolute; bottom: 10px; transform: translateX(-50%); white-space: nowrap; font-size: 18px; color: #5c5a55; }
+  .row { position: relative; display: flex; margin-top: 24px; height: 128px; }
+  .row .name { position: absolute; left: -144px; top: 50%; transform: translateY(-50%); width: 120px; text-align: right; font-size: 24px; color: #5c5a55; }
+  .row.after .name { color: #1c1c1c; font-weight: 600; }
+  .bar { display: flex; align-items: center; box-sizing: border-box; }
+  .num { font-size: 80px; line-height: 1; font-weight: 600; }
+  .num small { font-size: 24px; font-weight: 600; margin-left: .25em; }
+  .before .bar { width: 1536px; background: #d6d3cb; justify-content: flex-end; padding-right: 32px; }
+  .after .now { width: calc(var(--h) * 1.5); background: #1f5c4a; color: #ffffff; justify-content: flex-end; padding-right: 32px; }
+  .after .gone { flex: 1; background: repeating-linear-gradient(135deg, #e7e4dc 0 10px, #f7f6f2 10px 20px); border: 1px dashed #b9b5ab; color: #5c5a55; font-size: 24px; padding-left: 32px; }
+  .lead { margin: 64px 0 0; font-size: 28px; line-height: 1.8; }
+  footer { margin-top: auto; font-size: 18px; color: #5c5a55; border-top: 1px solid #d6d3cb; padding-top: 20px; }
+</style></head><body>
+<section class="slide">
+  <div class="eyebrow">問い合わせ対応の自動化　試行結果</div>
+  <h1>一次回答を自動化したら、<br>平均の返信時間が6.2時間から1.5時間になった</h1>
+  <div class="chart">
+    <div class="axis"><span style="left: 0">0</span><span style="left: calc(var(--h) * 1)">1</span><span style="left: calc(var(--h) * 2)">2</span><span style="left: calc(var(--h) * 3)">3</span><span style="left: calc(var(--h) * 4)">4</span><span style="left: calc(var(--h) * 5)">5</span><span style="left: calc(var(--h) * 6)">6時間</span></div>
+    <div class="row before"><div class="name">試行前</div><div class="bar"><span class="num">6.2<small>時間</small></span></div></div>
+    <div class="row after"><div class="name">試行後</div><div class="bar now"><span class="num">1.5<small>時間</small></span></div><div class="bar gone">短くなった分</div></div>
+  </div>
+  <p class="lead">試行は9月の4週間、サポート窓口の問い合わせ1,240件が対象。<br>担当者が最初の返信を書く件数も、半分以下に減った。</p>
+  <footer>月次報告</footer>
+</section>
+</body></html>

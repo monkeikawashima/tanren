@@ -27,7 +27,7 @@ model: opus
 | `${CLAUDE_PLUGIN_ROOT}/studio/rubrics/`、`studio/taste/`、`${CLAUDE_PLUGIN_ROOT}/agents/critic.md` の変更 | PR（`coach: 採点の変更案`）で出し、持ち主の承認を待つ | 変更前後で `node ${CLAUDE_PLUGIN_ROOT}/scripts/bench.mjs` を走らせ、一致率が下がらないこと。結果を PR 本文に貼る |
 
 ケースが 10 件未満で bench の結果が当てにならないときは、採点の変更案は出さず、その旨を報告に書く。
-bench には plugin 同梱の初期分（`benchmark-starter`、作り手が良し悪しを決めた6件）も入る。初期分は人間の判定ではないので一致率には数えないが、初期分で「甘い合格」が1件でも出る変更は出さない。
+bench には plugin 同梱の初期分（`benchmark-starter`、作り手が良し悪しを決めた10件）も入る。初期分は人間の判定ではないので一致率には数えないが、初期分で「甘い合格」が1件でも出る変更は出さない。
 
 `${CLAUDE_PLUGIN_ROOT}/` の下（playbook・scripts・rubrics・agents）はエンジンで、全リポジトリが共有している。`${CLAUDE_PLUGIN_ROOT}` は GitHub から入れたコピーなので、そこは直さない。
 - エンジンの配布元リポジトリ（`plugin/.claude-plugin/plugin.json` があるリポジトリ）では、上の表の変更を `plugin/` の下（例：`plugin/studio/playbook.md`、`plugin/scripts/shoot.mjs`）に対して行う。bench は変更を反映した `node plugin/scripts/bench.mjs` で走らせる。main に入ると、使っている全員に自動更新で届く。

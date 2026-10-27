@@ -18,6 +18,8 @@ designer と figma-builder が毎回読む。どのリポジトリで使って�
   3. デザインシステムの UI キットで組んだ製品の画面。中のデータは見本と分かるものにし、UI キットにない機能や数字を見せない
   4. design-job が生成した仮の画像（`assets/gen/`）
   5. plugin の仮素材。`jobs/<id>/assets/placeholders/placeholders.css` を読み込み、部品を `${CLAUDE_PLUGIN_ROOT}/placeholders/snippets.html` からコピーする（写真・動画・製品の画面・アバター・ロゴ）。「画像：〇〇」には何が入るかを具体的に書き、`data-label` にも同じことを書く。色は `--ph-*` を上書きしてデザインシステムやトークンに寄せる。グレーの箱を自分で作らない
+     - brief の「仮の画像」が「生成アート」なら、写真の面は `.ph--art` にして、`assets/placeholders/art/<images.json の id>.svg` を `<img class="ph__art">` で敷く（部品集の「生成アート」）。images.json にない面が要るときは `node ${CLAUDE_PLUGIN_ROOT}/scripts/placeholder-art.mjs --part jobs/<id> --id <名前> --ratio <比率>` で足す（同じ媒体の中で絵が重ならないように選ばれる）。同じ絵を2か所に使わない。「グレー」なら今までどおりの面にする
+     - 動画・製品の画面・アバター・ロゴは、どちらでも今までどおりの部品にする
 - 仮の画像にしてよいのは、雰囲気・情景・質感・抽象的なものだけ。依頼者の商品・店舗・ロゴ・実在の人物・文字入りの画像は生成しない（本物と誤解されるため）。これらは支給素材を待ち、仮素材で仮置きする。
 - 文言は brief にあるものを優先する。足りないコピーは、brief の言葉から組み立てた仮のコピーを、本番と同じ見た目で入れ、`<span data-provisional="copy" data-label="用途">` で囲んで、仮素材の「仮」の札（`.ph-tag`）を添える。brief にない数字・実績・社名・人名・受賞歴・料金は、仮でも作らない。それが要る箇所は、仮素材の「要コピー」の差し込み口（`.ph-slot`、`data-provisional="copy-needed"`）にする。
 - 仮の画像と仮のコピーは、撮影のときに一覧になり（`shots/*/index.md`）、PR と Figma の 00 Review に載せて、依頼者に差し替えてもらう。
