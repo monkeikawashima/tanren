@@ -278,15 +278,17 @@ PR を作ったあとは、関門が PR があるか・最新の変更が届い�
 
 - 自動更新がオンか確かめます。`/tanren:studio-init` を実行したリポジトリでは自動でオンになります。それ以外では、`/plugin` → **Marketplaces** → **tanren** → **Enable auto-update** でオンにします。
 - `DISABLE_AUTOUPDATER=1` や `DISABLE_UPDATES=1` を設定していると、plugin の更新も止まります。plugin だけ更新したいときは `FORCE_AUTOUPDATE_PLUGINS=1` を足します。
-- すぐ最新にしたいときは、次の2つを実行します。
+- すぐ最新にしたいときは、tanren を使うリポジトリで、ターミナル（Claude Code の外）から次の2つを実行し、Claude Code を起動し直します。Claude Code の中で `/plugin update …` と打っても更新されません。
 
 ```text
-/plugin marketplace update tanren
+claude plugin marketplace update tanren
 ```
 
 ```text
-/plugin update tanren@tanren
+claude plugin update tanren@tanren --scope project
 ```
+
+インストール先に **user** を選んだときは、`--scope project` を `--scope user` にします。Claude Code の中から更新したいときは、`/plugin` を開いて画面から tanren を選びます。
 
 自動更新がオンなら、対話のセッションで最初のメッセージを送ってから最大10分のうちに新しい版を取ってきて、次の起動（または `/reload-plugins`）から効きます。`claude -p` だけで動かす環境では、自動では取ってきません。
 
