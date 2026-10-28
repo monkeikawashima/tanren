@@ -15,10 +15,11 @@ PR のブランチ、PR 本文の `jobs/<id>`、またはチャットの文脈�
 - PR から：レビューコメント、インラインコメント、PR 会話のコメント（使える GitHub ツールで取得）。
 - チャットから：依頼者の発言そのもの。
 - マージされた PR で、変更要求がなかった場合は「手直しなしで承認」として扱う。
+- ローカル納品（`jobs/<id>/delivery.json` に `local` がある）の案件では、マージの代わりに、依頼者がチャットで納品した案件をそのまま受け入れると言ったとき（「<案件ID> はこれで OK」「このままで採用」など）を「手直しなしで承認」として扱う。どの案件の話か、直す所がないのかがはっきりしなければ、承認として記録せずに聞き返す。
 
 ## 3. 学習（毎回）
 librarian サブエージェントを呼ぶ。渡すもの：案件 id、集めた指摘の原文、指摘のあった媒体ごとの `<part>/shots/final/`、critic の最終判定（verdicts の最後の build-*.md）、探索で依頼者が方向性を選んだ記録（`verdicts/explore-*-human.md`。あれば）。
-librarian は taste の更新を別 PR で出す。
+librarian は taste の更新を別 PR で出す（ローカル納品の案件では案件のブランチに commit し、変更の箇条を返すので、依頼者にそのまま見せる）。
 
 指摘のあった媒体ごとに `<part>/review.json` に記録を追加する（手直しなしの承認なら全部の媒体に）：
 
@@ -29,8 +30,8 @@ librarian は taste の更新を別 PR で出す。
 ## 4. 修正（「今回の修正」があるとき）
 1. 媒体ごとに、指摘を `<part>/verdicts/human-<NN>.md` に critic と同じ形式で書く（VERDICT: FAIL、修正リストに指摘を1件ずつ。依頼者の言葉を変えない）。
 2. `<part>/contract.md` の末尾に `## レビューで追加された合格条件（<日付>）` を足し、指摘を確かめられる条件に直して書く。critic は次の採点からこれも見る。
-3. 案件の PR のブランチに切り替える（`jobs/<id>/delivery.json` の `branch`、なければ PR のブランチ。`git switch <ブランチ>` のあと `git pull`）。修正の commit が PR に届くようにするため。
+3. 案件の PR のブランチに切り替える（`jobs/<id>/delivery.json` の `branch`、なければ PR のブランチ。`git switch <ブランチ>` のあと `git pull`。ローカル納品の案件は upstream がないので `git pull` はしない）。修正の commit が PR に届くようにするため。
    そのうえで `node ${CLAUDE_PLUGIN_ROOT}/scripts/job-state.mjs --revise jobs/<id> --parts <直す媒体のフォルダ名をカンマ区切り>` を実行して（分かれていない昔の案件なら `--parts` は付けない）、`.loop/state.json` を修正回の状態にする（status `running`・phase `build`。前の回の結果とエラーの回数を消し、各工程の上限を「今の回数 + 既定の上限」にする。`.loop/` がない別の環境でも、案件フォルダから作り直せる）。Figma コネクタがこのセッションで使えないなら `--figma off` を付ける。Figma は作り直さず、修正回としてその場で直る。
    - 指摘が「デザインシステムを新しいもの（または別のもの）にして」なら、`design-job` の「0. 案件を作る」の 6 と同じ手順で `<part>/assets/ds/` を取り直してから（別のものなら brief の「デザインシステム」欄も書き換えて）、修正リストに「新しいデザインシステムに合わせる」を足す。
 4. 直す媒体ごとに designer サブエージェントを呼ぶ（1つのメッセージで同時に）。指示は「修正モード。<part>/verdicts/human-<NN>.md を上から全部直す」。
-5. 2行で要約してターンを終える。以降は design-job の「3. 磨き」「4. 納品」と同じく関門 hook が回す（直す媒体を順に採点し、最後に1回だけ納品する）。納品では新しい PR を作らず、同じ PR に push してコメントで結果を返す（hook は `delivery.json` の PR に最新の commit が届いているかを確かめる）。プレビューは `jobs/<id>/artifact.json` の URL を Artifact ツールで先に read し、同じ URL へ publish し直して更新する（新しい Artifact を作らない）。
+5. 2行で要約してターンを終える。以降は design-job の「3. 磨き」「4. 納品」と同じく関門 hook が回す（直す媒体を順に採点し、最後に1回だけ納品する）。納品では新しい PR を作らず、同じ PR に push してコメントで結果を返す（hook は `delivery.json` の PR に最新の commit が届いているかを確かめる）。ローカル納品の案件は、`delivery.md` を今回の結果で書き直す。プレビューは `jobs/<id>/artifact.json` の URL を Artifact ツールで先に read し、同じ URL へ publish し直して更新する（新しい Artifact を作らない）。

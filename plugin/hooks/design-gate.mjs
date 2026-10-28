@@ -6,6 +6,7 @@
 //   usertest  user-tester（別プロセス）がプロトタイプを操作。詰まりがあれば build に戻す
 //   figma     figma-critic（セッション内サブエージェント）が書いた verdicts/figma-NN.md を読む
 //   delivering PR 作成と通知をさせたあと、PR があるかを確かめてから done にして止める
+//              （ローカル納品なら PR の代わりに jobs/<id>/delivery.md の報告を確かめる）
 //
 // 媒体が複数ある依頼（state.parts）は、媒体のフォルダ jobs/<id>/<媒体>/ ごとに build〜figma を順に回し、
 // 全部の媒体が終わってから1回だけ納品する（1件の依頼 = 1ブランチ = 1 PR）。state.job は今の媒体のフォルダ。
@@ -66,6 +67,14 @@ function gitOut(args) {
   return r.status === 0 ? r.stdout.trim() : null;
 }
 const useGit = () => state.git !== false && fs.existsSync(R('.git'));
+
+// GitHub に納品しない（PR を作らず、報告を jobs/<id>/delivery.md に書く）理由。PR で納品するなら null
+function localDelivery() {
+  if (config.defaults?.delivery === 'local') return 'studio/config.json の defaults.delivery が local';
+  if (!useGit()) return 'git のリポジトリではない';
+  if (!gitOut(['remote'])) return 'git のリモートがない';
+  return null;
+}
 
 function parseScores(text) {
   const line = (text.match(/^SCORES:\s*(.*)$/m) || [, ''])[1].trim();
@@ -207,15 +216,20 @@ function deliver(note) {
   state.status = 'delivering';
   state.delivery_note = note;
   state.pr_checks = 0;
+  state.delivering_at = Date.now();
   log(`\n## 納品へ（${now()}）\n${note}\n`);
   writeRequestSummary();
   commit(`deliver: ${note.slice(0, 60)}`);
+  const local = localDelivery();
+  const unpassed = state.result && state.result !== 'passed'
+    ? `結果は「${label()}」です。${local ? '報告' : 'PR '}の冒頭の注意書きと結果の表に、そのまま書いてください。` : '';
+  if (local) {
+    block(`${note}\nこのリポジトリには PR を作りません（${local}）。design-job スキルの「4. 納品」の「ローカル納品」に従って、PR 本文と同じ形の報告を ${request}/delivery.md に書き、${request}/delivery.json に "local" と "branch" を書いて、通知してからターンを終えてください。${unpassed}次に止まったとき、hook が報告があるかを確かめます。`);
+  }
   const existing = knownPr();
   const how = existing
     ? `新しい PR は作らず、ブランチを push して既存の PR（${existing}）を更新し、PR にコメントで今回の結果を返し`
     : `ブランチを push して PR を${state.parts ? '1つ' : ''}作成し`;
-  const unpassed = state.result && state.result !== 'passed'
-    ? `結果は「${label()}」です。PR の冒頭の注意書きと結果の表に、そのまま書いてください。` : '';
   block(`${note}\ndesign-job スキルの「4. 納品」に従って、${how}、PR の URL を ${request}/delivery.json の "pr" に書いて、通知してからターンを終えてください。${unpassed}次に止まったとき、hook が PR があるかを確かめます。`);
 }
 
@@ -282,6 +296,14 @@ function findPr() {
 }
 function readJsonText(s) { try { return JSON.parse(s); } catch { return null; } }
 
+// ローカル納品の報告（jobs/<id>/delivery.md）が、今回納品に入ってから書かれたかを確かめる
+function findReport() {
+  const rel = path.join(request, 'delivery.md');
+  if (!fs.existsSync(R(rel))) return { ok: false, why: `${rel} がない` };
+  if (fs.statSync(R(rel)).mtimeMs < (state.delivering_at || 0)) return { ok: false, why: `${rel} が今回の結果で書き直されていない` };
+  return { ok: true, report: rel };
+}
+
 // hook 自体が落ちた（state.json が壊れている、案件フォルダが欠けている等）。数えて、3回で納品か停止に回す
 function crashed(err) {
   const c = (readJson(crashFile)?.count || 0) + 1;
@@ -314,18 +336,42 @@ function main() {
 
   // ---------- delivering → done ----------
   if (state.phase === 'delivering') {
+    const local = localDelivery();
+    if (local) {
+      const rep = findReport();
+      if (!rep.ok) {
+        state.pr_checks = (state.pr_checks || 0) + 1;
+        if (state.pr_checks < 3) {
+          block(`納品の報告を確認できませんでした（${rep.why}）。design-job の「4. 納品」の「ローカル納品」に従って、${request}/delivery.md に今回の結果の報告を書いてからターンを終えてください（あと ${3 - state.pr_checks} 回で、報告なしとして止めます）。`);
+        }
+        log(`\n## 納品の報告を確認できないまま止めた（${rep.why}）\n`);
+      }
+      state.status = 'done';
+      state.finished_at = now();
+      const summary = writeRequestSummary({
+        finished_at: state.finished_at, delivery: 'local', pr: null, report: rep.report || null,
+        ...(rep.ok ? { report_missing: undefined } : { report_missing: rep.why }),
+      });
+      record('done', 0, summary.result, {}, { report: summary.report });
+      commit(`done ${summary.result}`);
+      save();
+      fs.rmSync(crashFile, { force: true });
+      const name = path.basename(request);
+      notify(rep.ok ? `${name} を納品しました（${label()}）。報告は ${rep.report}` : `${name}：納品の報告を確認できませんでした（${rep.why}）`);
+      process.exit(0);
+    }
     const pr = findPr();
     if (!pr.ok) {
       state.pr_checks = (state.pr_checks || 0) + 1;
       if (state.pr_checks < 3) {
-        block(`PR を確認できませんでした（${pr.why}）。design-job の「4. 納品」の 2 に従って、ブランチ ${state.branch || ''} を push し、PR を作って（既にあれば同じ PR に push して）、URL を ${request}/delivery.json の "pr" に書いてからターンを終えてください。gh が使えない・リモートがないなどで作れないときは、理由を ${request}/progress.md に書いてターンを終えてください（あと ${3 - state.pr_checks} 回で、PR なしとして止めます）。`);
+        block(`PR を確認できませんでした（${pr.why}）。design-job の「4. 納品」の 2 に従って、ブランチ ${state.branch || ''} を push し、PR を作って（既にあれば同じ PR に push して）、URL を ${request}/delivery.json の "pr" に書いてからターンを終えてください。gh が使えないなどで作れないときは、理由を ${request}/progress.md に書いてターンを終えてください（あと ${3 - state.pr_checks} 回で、PR なしとして止めます）。`);
       }
       log(`\n## PR を確認できないまま止めた（${pr.why}）\n`);
     }
     state.status = 'done';
     state.finished_at = now();
     const summary = writeRequestSummary({
-      finished_at: state.finished_at, pr: pr.url || null, pr_verified: !!pr.verified,
+      finished_at: state.finished_at, delivery: 'pr', pr: pr.url || null, pr_verified: !!pr.verified,
       ...(pr.ok ? { pr_missing: undefined } : { pr_missing: pr.why }),
     });
     record('done', 0, summary.result, {}, { pr: summary.pr });

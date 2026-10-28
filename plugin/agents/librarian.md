@@ -39,3 +39,4 @@ accepted か major の案件は、`studio/benchmark/cases/<job-id>/` に brief.m
 
 ## 5. 出し方
 変更は案件の PR とは別に、`taste: <job-id> のレビューから` という PR にまとめる。本文に、追加したルール・画像・ズレの記録を箇条で並べる。
+ローカル納品の案件（`jobs/<id>/delivery.json` に `local` がある）では PR を作らず、案件のブランチに `taste: <job-id> のレビューから` という commit で入れ、PR 本文に書くはずだった箇条をそのまま返す（呼び出し元が依頼者に見せる）。

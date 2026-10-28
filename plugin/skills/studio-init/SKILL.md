@@ -37,8 +37,8 @@ description: tanren を新しいリポジトリで使えるようにする（1�
 
 ## 5.2 PR を作れるか
 納品で PR を作るので、ここで確かめる（直すのは人間。代わりにログインしない）。
-- `git remote -v` に GitHub のリモートがあるか。なければ、報告に「GitHub のリモートがないので PR を作れない」と書く。
-- `gh auth status` が通るか。gh がない、またはログインしていなければ、人間に `! gh auth login` を頼む（クラウドのスレッドでは GitHub のコネクタで作るので要らない）。
+- `git remote -v` に GitHub のリモートがあるか。なければ `studio/config.json` の `defaults.delivery` を `local` にし、報告に「GitHub のリモートがないので、PR の代わりに `jobs/<id>/delivery.md` に報告を書いて納品する。リモートを足したら `defaults.delivery` を `pr` に戻す」と書く。リモートがあれば `pr` のままにする。
+- リモートがあるときは、`gh auth status` が通るか。gh がない、またはログインしていなければ、人間に `! gh auth login` を頼む（クラウドのスレッドでは GitHub のコネクタで作るので要らない）。
 - 既に `.claude/settings.json` があるリポジトリで tanren を更新したときも、4 の許可設定を合わせ直す（push と PR 作成の許可が後から増えたため）。
 
 ## 5.5 デザインシステム

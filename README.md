@@ -55,6 +55,8 @@ flowchart LR
 > - Claude Code（ターミナル、またはデスクトップアプリの Code タブ）
 > - Node.js（撮影と採点に使う Playwright のため）
 > - GitHub のリモートがあるリポジトリと、ログイン済みの [GitHub CLI](https://cli.github.com/)（`gh`。PR を作るため）
+>
+> GitHub がなくても使えます。リモートのない git リポジトリでは、PR の代わりに `jobs/<案件ID>/delivery.md` に報告が届きます。直してほしいところはチャットで伝え、良ければチャットで「〇〇はこれで OK」と伝えます（マージの代わりに、手直しなしの承認として記録されます）。
 
 ### 1. plugin を入れる（Mac ごとに1回）
 
@@ -371,6 +373,7 @@ Claude Code に Figma のコネクタがつながっていないと、Figma の�
 | `defaults.usertest_max` | 3 | 操作テストの回数の上限 |
 | `defaults.figma_max` | 5 | Figma の検品の回数の上限 |
 | `defaults.human_pick_first` | 5 | 方向性をあなたが選ぶ件数 |
+| `defaults.delivery` | `pr` | 納品のしかた。`pr` は GitHub の PR、`local` は `jobs/<案件ID>/delivery.md` の報告。リモートがなければ studio-init が `local` にする（設定が `pr` でもリモートがなければ報告で届く） |
 | `design_systems` | 未設定 | デザインシステムの既定と、種類ごとの割り当て。`/tanren:design-system` で変える |
 | `figma.*` | 空 | 書き出し先のチーム、プロジェクト、ライブラリ |
 | `notify.slack_channel` | 空 | 納品を知らせる Slack のチャンネル |

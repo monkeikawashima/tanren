@@ -7,7 +7,8 @@
     "usertest_max": 3,
     "figma_max": 5,
     "human_pick_first": 5,
-    "placeholder": "art"
+    "placeholder": "art",
+    "delivery": "pr"
   },
   "design_systems": {
     "$note": "このリポジトリのデザインシステム。status は unset（未設定）/ none（使わない）/ set。媒体ごとの割り当ては by_medium（null は使わない）、なければ default。形は plugin の studio/design-system-format.md。確認と変更は /tanren:design-system",

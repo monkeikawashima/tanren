@@ -2,6 +2,10 @@
 
 tanren の main に入った変更です。新しいものが上です。
 
+## 2026-10-28
+
+- GitHub のリモートがないリポジトリでも、PR の代わりに jobs/<案件ID>/delivery.md の報告で納品できるようにした
+
 ## 2026-10-27
 
 - README のすぐ最新にする手順を、ターミナルで打つ claude plugin update の形に直した（Claude Code の中の /plugin update では更新されないため）
