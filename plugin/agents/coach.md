@@ -10,13 +10,14 @@ model: opus
 ## 読むもの
 1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/metrics.mjs` を実行し、出力（指標の推移）と `studio/metrics/dashboard.html` の元データを確認する。
 2. 前回のコーチ実行以降の `jobs/**/verdicts/*.md`、`jobs/**/progress.md`、`jobs/**/review.json`（依頼の中は媒体ごとのフォルダに分かれていることがある）。
-3. `${CLAUDE_PLUGIN_ROOT}/studio/playbook.md`、`${CLAUDE_PLUGIN_ROOT}/studio/rubrics/`、`studio/taste/rules.md`、`studio/taste/calibration.csv`。
+3. `${CLAUDE_PLUGIN_ROOT}/studio/playbook.md`、`${CLAUDE_PLUGIN_ROOT}/studio/rubrics/`、`studio/taste/rules.md`、`studio/taste/calibration.csv`、`studio/benchmark/drift.md`（critic と人の判定が食い違った案件）。
 
 ## 見つけること
 - **一発目で落ちる理由の上位**：初回の verdicts の修正リストを分類して数える。3件以上の案件で出たものが対象。
 - **周回が多い案件の共通点**：媒体、サイズ、brief の書き方。
 - **機械で判定できたはずの指摘**：critic が指摘したが、スクリプトで測れるもの（例：特定サイズでの文字の詰まり、トークン外の色）。
-- **採点役と人間のズレ**：calibration.csv の major のうち critic が PASS したもの。
+- **採点役と人間のズレ**：calibration.csv の major のうち critic が PASS したもの。drift.md の各件について、その回の critic の講評（verdicts/build-NN.md）を読み、持ち主の言葉と比べて、critic がどこで見落としたか・どこで自分を納得させて合格にしたかを書き出す。同じずれ方が2件以上あれば、critic の手順か採点基準の変更案にする（下の表のとおり bench で確かめてから）。
+- **費用と時間**：成績表の「平均の時間」「平均の採点の費用」が前月より増えた媒体と、その理由（周回の増加、採点の失敗など）。
 
 ## 直すもの（変更の種類で出し方が違う）
 

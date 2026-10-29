@@ -16,6 +16,7 @@
       "Bash(node */scripts/ds-build.mjs*)",
       "Bash(node */scripts/ds-extract.mjs*)",
       "Bash(node */scripts/job-state.mjs*)",
+      "Bash(node */scripts/artifact-files.mjs*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git switch:*)",

@@ -14,8 +14,9 @@ const jobs = [];
 for (const d of fs.existsSync(path.join(root, 'jobs')) ? fs.readdirSync(path.join(root, 'jobs')) : []) {
   const s = JSON.parse(read(`jobs/${d}/summary.json`, 'null'));
   if (!s) continue;
-  if (s.parts?.length) for (const p of s.parts) jobs.push({ dir: p.path, name: `${d}/${path.basename(p.path)}`, finished: s.finished_at });
-  else jobs.push({ dir: `jobs/${d}`, name: d, finished: s.finished_at });
+  // 時間は依頼全体でしか測れないので、媒体が複数なら媒体の数で割って振り分ける
+  if (s.parts?.length) for (const p of s.parts) jobs.push({ dir: p.path, name: `${d}/${path.basename(p.path)}`, finished: s.finished_at, minutes: typeof s.minutes === 'number' ? s.minutes / s.parts.length : null });
+  else jobs.push({ dir: `jobs/${d}`, name: d, finished: s.finished_at, minutes: s.minutes ?? null });
 }
 
 const month = (ts) => ts.slice(0, 7);
@@ -23,7 +24,7 @@ const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : nul
 const mean4 = (s) => { const v = ['design', 'originality', 'craft', 'function'].map((k) => s?.[k]).filter((x) => typeof x === 'number'); return v.length === 4 ? avg(v) : null; };
 
 // 案件ごと
-const perJob = jobs.map(({ dir, name, finished }) => {
+const perJob = jobs.map(({ dir, name, finished, minutes }) => {
   const summary = JSON.parse(read(`${dir}/summary.json`, '{}'));
   const review = JSON.parse(read(`${dir}/review.json`, '{"rounds":[]}'));
   const jr = runs.filter((r) => r.job === dir && r.phase === 'build');
@@ -35,6 +36,8 @@ const perJob = jobs.map(({ dir, name, finished }) => {
     firstScore: first ? mean4(first.scores) : null,
     firstPass: jr.length ? jr[0].verdict === 'PASS' : null,
     machineFails: jr.filter((r) => r.machine).length,
+    minutes,
+    cost: typeof summary.eval_cost_usd === 'number' ? summary.eval_cost_usd : null,
     outcome,
   };
 });
@@ -50,6 +53,8 @@ const byMonth = months.map((m) => {
     iterations: avg(js.map((j) => j.buildIterations).filter((x) => x !== null)),
     accepted: reviewed.length ? reviewed.filter((j) => j.outcome === 'accepted').length / reviewed.length : null,
     major: reviewed.length ? reviewed.filter((j) => j.outcome === 'major').length / reviewed.length : null,
+    minutes: avg(js.map((j) => j.minutes).filter((x) => typeof x === 'number')),
+    cost: avg(js.map((j) => j.cost).filter((x) => typeof x === 'number')),
   };
 });
 
@@ -70,13 +75,16 @@ console.log(`critic が合格にしたのに作り直しになった件数（累
 
 const rows = (arr, cols) => arr.map((r) => `<tr>${cols.map(([, f]) => `<td>${f(r)}</td>`).join('')}</tr>`).join('');
 const head = (cols) => `<tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr>`;
+const usd = (x) => (x === null || x === undefined ? '—' : `$${x.toFixed(2)}`);
 const monthCols = [
   ['月', (r) => r.month], ['案件', (r) => r.jobs], ['一発目の平均点', (r) => fmt(r.firstScore)],
   ['合格までの回数', (r) => fmt(r.iterations)], ['手直しなしで通過', (r) => pct(r.accepted)], ['作り直し', (r) => pct(r.major)],
+  ['平均の時間（分）', (r) => fmt(r.minutes, 0)], ['平均の採点の費用', (r) => usd(r.cost)],
 ];
 const jobCols = [
   ['案件', (r) => r.job], ['媒体', (r) => r.medium], ['結果', (r) => r.result], ['一発目', (r) => fmt(r.firstScore)],
-  ['合格まで', (r) => fmt(r.buildIterations, 0)], ['機械チェック落ち', (r) => r.machineFails], ['人間の判定', (r) => r.outcome || '未レビュー'],
+  ['合格まで', (r) => fmt(r.buildIterations, 0)], ['機械チェック落ち', (r) => r.machineFails],
+  ['時間（分）', (r) => fmt(r.minutes, 0)], ['採点の費用', (r) => usd(r.cost)], ['人間の判定', (r) => r.outcome || '未レビュー'],
 ];
 
 const html = `<!doctype html>

@@ -34,8 +34,17 @@ model: opus
 
 critic が PASS を出したのに major だった件数が、直近10件で3件以上なら、rules.md の「採点の甘さ補正」に、どの項目を何点辛くするかを1行書く（flagged_criteria から選ぶ）。
 
+critic と人の判定が食い違った案件（critic が PASS で人が major、または critic が FAIL のまま上限で届いて人が accepted）は、`studio/benchmark/drift.md` に1件ずつ足す。coach がこれを読み、critic の手順のどこで判断がずれたかを探す（判定役の記録を読んで、人とずれた所で直す、というやり方のため）。
+```
+## <job-id>/<媒体>（<日付>）
+- critic：<PASS/FAIL> <SCORES の行>（<媒体フォルダ>/verdicts/build-NN.md）
+- 人：<accepted/major>。<持ち主の言葉のまま>
+- ずれた項目：<design / originality / craft / function のどれか。持ち主の言葉から読み取れるものだけ>
+```
+
 ## 4. 検証セットに入れる
-accepted か major の案件は、`studio/benchmark/cases/<job-id>/` に brief.md、contract.md、manifest.json、shots/（final のコピー）、outcome.json を置く。
+accepted か major の案件は、`studio/benchmark/cases/<job-id>/` に brief.md、contract.md、manifest.json、shots/（final のコピー）、outcome.json を置く。媒体ごとのフォルダに分かれた案件は、媒体ごとに `studio/benchmark/cases/<job-id>-<媒体>/` にする。
+outcome.json には `medium`・`human_outcome`・`pass_score` に加えて、`critic_verdict`（最後の build の VERDICT）・`critic_scores`（その SCORES）・`human_note`（持ち主の言葉のまま）を書く。食い違った案件を bench で確かめ直せるようにするため。
 
 ## 5. 出し方
 変更は案件の PR とは別に、`taste: <job-id> のレビューから` という PR にまとめる。本文に、追加したルール・画像・ズレの記録を箇条で並べる。

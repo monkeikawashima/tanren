@@ -8,7 +8,9 @@ description: tanren を新しいリポジトリで使えるようにする（1�
 ひな形は `${CLAUDE_PLUGIN_ROOT}/templates/` にある。**既にあるファイルは上書きしない。** 足りないものだけ足し、最後に何を足して何を残したかを一覧で返す。
 
 ## 1. 確かめる
-- git リポジトリの直下で動いているか。違えば止めて、どのフォルダで使うかを聞く。
+- git リポジトリの直下で動いているか。
+  - git のリポジトリの中の、直下でない場所なら、止めてどのフォルダで使うかを聞く。
+  - git のリポジトリでないフォルダなら、`git init` してよいかを1回だけ聞く（GitHub は要らない。案件ごとの変更の履歴が手元に残り、前の版に戻せるようになる）。断られたら git なしで進め、`studio/config.json` の `defaults.git` を `false`、`defaults.delivery` を `local` にする（関門は commit とブランチの確認をせず、報告は `jobs/<id>/delivery.md` に届く）。
 - `plugin/.claude-plugin/plugin.json` があるなら、ここはエンジンの配布元リポジトリなので何もしない（studio/ と設定は最初からある）。
 
 ## 2. studio/ と jobs/
@@ -37,7 +39,7 @@ description: tanren を新しいリポジトリで使えるようにする（1�
 
 ## 5.2 PR を作れるか
 納品で PR を作るので、ここで確かめる（直すのは人間。代わりにログインしない）。
-- `git remote -v` に GitHub のリモートがあるか。なければ `studio/config.json` の `defaults.delivery` を `local` にし、報告に「GitHub のリモートがないので、PR の代わりに `jobs/<id>/delivery.md` に報告を書いて納品する。リモートを足したら `defaults.delivery` を `pr` に戻す」と書く。リモートがあれば `pr` のままにする。
+- `git remote -v` に GitHub のリモートがあるか。なければ（リモートがない、または GitLab・Bitbucket など GitHub 以外）`studio/config.json` の `defaults.delivery` を `local` にし、報告に「GitHub のリモートがないので、PR の代わりに `jobs/<id>/delivery.md` に報告を書いて納品する。リモートを足したら `defaults.delivery` を `pr` に戻す」と書く。リモートがあれば `pr` のままにする。
 - リモートがあるときは、`gh auth status` が通るか。gh がない、またはログインしていなければ、人間に `! gh auth login` を頼む（クラウドのスレッドでは GitHub のコネクタで作るので要らない）。
 - 既に `.claude/settings.json` があるリポジトリで tanren を更新したときも、4 の許可設定を合わせ直す（push と PR 作成の許可が後から増えたため）。
 

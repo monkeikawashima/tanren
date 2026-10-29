@@ -27,6 +27,13 @@
     "slack_channel": "",
     "mention": ""
   },
+  "gate": {
+    "$note": "関門で使う判定の部品。false にするとその部品を外す（新しいモデルで、どの部品が効いているかを確かめ直すとき用。ふだんは全部 true）",
+    "machine": true,
+    "critic": true,
+    "usertest": true,
+    "figma": true
+  },
   "budget": {
     "critic_usd_per_run": 3
   },

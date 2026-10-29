@@ -66,13 +66,16 @@ function gitOut(args) {
   const r = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
   return r.status === 0 ? r.stdout.trim() : null;
 }
-const useGit = () => state.git !== false && fs.existsSync(R('.git'));
+const useGit = () => state.git !== false && config?.defaults?.git !== false && fs.existsSync(R('.git'));
 
 // GitHub に納品しない（PR を作らず、報告を jobs/<id>/delivery.md に書く）理由。PR で納品するなら null
 function localDelivery() {
   if (config.defaults?.delivery === 'local') return 'studio/config.json の defaults.delivery が local';
   if (!useGit()) return 'git のリポジトリではない';
-  if (!gitOut(['remote'])) return 'git のリモートがない';
+  const remotes = gitOut(['remote', '-v']);
+  if (!remotes) return 'git のリモートがない';
+  // GitHub 以外（GitLab・Bitbucket など）には gh で PR を作れない。GitHub Enterprise の独自ドメインは defaults.delivery を pr にすれば PR で納品する
+  if (!/github/i.test(remotes) && config.defaults?.delivery !== 'pr') return 'GitHub 以外のリモート';
   return null;
 }
 
@@ -109,7 +112,9 @@ function writeSummary(extra = {}) {
   const prev = readJson(J('summary.json')) || {};
   const summary = {
     ...prev, job, medium: state.medium, result: state.result || 'passed',
-    build: state.build, usertest: state.usertest, figma: state.figma, ...extra,
+    build: state.build, usertest: state.usertest, figma: state.figma,
+    eval_cost_usd: round2(state.part_cost_usd ?? state.cost_usd ?? 0),
+    ...(state.parts ? {} : { minutes: minutes() }), ...extra,
   };
   fs.writeFileSync(J('summary.json'), JSON.stringify(summary, null, 2) + '\n');
   return summary;
@@ -128,7 +133,8 @@ function writeRequestSummary(extra = {}) {
   }
   const summary = {
     ...prev, job: request, media: parts.map((p) => p.medium),
-    result: parts.map((r) => r.result).find((r) => r !== 'passed') || 'passed', parts, ...extra,
+    result: parts.map((r) => r.result).find((r) => r !== 'passed') || 'passed', parts,
+    eval_cost_usd: round2(state.cost_usd || 0), minutes: minutes(), ...extra,
   };
   fs.writeFileSync(f, JSON.stringify(summary, null, 2) + '\n');
   return summary;
@@ -137,7 +143,7 @@ function writeRequestSummary(extra = {}) {
 function runAgent(agent, prompt, tools) {
   // --plugin-dir で、この hook と同じ版のプラグインを採点プロセスにも読ませる
   const args = ['-p', prompt, '--agent', `tanren:${agent}`, '--plugin-dir', plugin,
-    '--allowedTools', tools, '--output-format', 'text',
+    '--allowedTools', tools, '--output-format', 'json',
     '--mcp-config', P('mcp', 'playwright.json'), '--strict-mcp-config'];
   const budget = state.critic_budget_usd ?? config.budget?.critic_usd_per_run;
   if (budget) args.push('--max-budget-usd', String(budget));
@@ -145,7 +151,54 @@ function runAgent(agent, prompt, tools) {
     cwd: root, encoding: 'utf8', timeout: 20 * 60 * 1000, maxBuffer: 20 * 1024 * 1024,
     env: { ...process.env, DESIGN_LOOP_EVALUATOR: '1' },
   });
-  return { ok: r.status === 0, out: (r.stdout || '').trim(), err: ((r.stderr || '') + (r.error ? String(r.error) : '')).slice(-1000) };
+  const raw = (r.stdout || '').trim();
+  const j = readJsonText(raw);
+  const cost = typeof j?.total_cost_usd === 'number' ? j.total_cost_usd : null;
+  const ms = typeof j?.duration_ms === 'number' ? j.duration_ms : null;
+  if (cost !== null) {
+    state.cost_usd = round2((state.cost_usd || 0) + cost);
+    state.part_cost_usd = round2((state.part_cost_usd || 0) + cost);
+  }
+  return {
+    ok: r.status === 0 && !j?.is_error, out: (j && typeof j.result === 'string' ? j.result : raw).trim(),
+    err: ((r.stderr || '') + (r.error ? String(r.error) : '')).slice(-1000), cost, ms,
+  };
+}
+const round2 = (x) => Math.round(x * 100) / 100;
+const costLine = (s) => `${s.minutes ?? '?'}分・採点 $${(s.eval_cost_usd ?? 0).toFixed(2)}`;
+const minutes = () => (state.started_at ? Math.round((Date.now() - Date.parse(state.started_at)) / 60000) : null);
+
+// 判定の部品を外すスイッチ（studio/config.json の gate）。新しいモデルで、どの部品が効いているかを確かめ直すため
+const gateOn = (k) => config.gate?.[k] !== false;
+
+// 回ごとの成果物の写し（.loop/snapshots/<媒体>/build-NN/）。上限で終わったとき、点数が一番高かった回を納品するため
+const snapDir = (n) => R('.loop', 'snapshots', job.replace(/[\\/]/g, '__'), `build-${n}`);
+function snapshot(n, score) {
+  if (!fs.existsSync(J('work'))) return;
+  fs.rmSync(snapDir(n), { recursive: true, force: true });
+  fs.cpSync(J('work'), path.join(snapDir(n), 'work'), { recursive: true });
+  (state.build.scores ||= {})[n] = score;
+}
+// 4項目の平均（なければ total）。機械チェックで落ちた回は点がないので候補にならない
+function scoreOf(obj) {
+  const v = ['design', 'originality', 'craft', 'function'].map((k) => obj[k]).filter((x) => typeof x === 'number');
+  if (v.length) return v.reduce((a, b) => a + b, 0) / v.length;
+  return typeof obj.total === 'number' ? obj.total : null;
+}
+function restoreBest() {
+  const scores = Object.entries(state.build?.scores || {}).filter(([, v]) => typeof v === 'number');
+  if (!scores.length) return null;
+  const [n, score] = scores.reduce((a, b) => (b[1] > a[1] ? b : a));
+  const last = pad(state.build.iteration);
+  if (n === last || !fs.existsSync(path.join(snapDir(n), 'work'))) return null;
+  fs.rmSync(J('work'), { recursive: true, force: true });
+  fs.cpSync(path.join(snapDir(n), 'work'), J('work'), { recursive: true });
+  if (fs.existsSync(J('shots', `build-${n}`))) {
+    fs.rmSync(J('shots', 'final'), { recursive: true, force: true });
+    fs.cpSync(J('shots', `build-${n}`), J('shots', 'final'), { recursive: true });
+  }
+  state.build.delivered = n;
+  return { n, score };
 }
 
 function evalError(lbl, err) {
@@ -187,7 +240,7 @@ function startPart(p) {
   state.build = { iteration: bi, max: bi + (bi ? 5 : d.build_max ?? 10) };
   state.usertest = { iteration: ui, max: ui + (d.usertest_max ?? 3) };
   state.figma = { enabled: !!state.figma?.enabled, iteration: fi, max: fi + (d.figma_max ?? 5) };
-  for (const k of ['result', 'errors', 'shoot_failures', 'delivery_note']) delete state[k];
+  for (const k of ['result', 'errors', 'shoot_failures', 'delivery_note', 'part_cost_usd']) delete state[k];
 }
 
 // この媒体の工程を終える（合格・上限・打ち切りのどれでも）。次の媒体があればそちらへ、なければ納品へ
@@ -234,7 +287,7 @@ function deliver(note) {
 }
 
 function nextAfterBuild() {
-  if (interactive && !state.usertest?.done) {
+  if (interactive && gateOn('usertest') && !state.usertest?.done) {
     state.phase = 'usertest';
     block('HTML の採点に合格しました。続けてユーザーテストを行うので、何も変更せずにすぐターンを終えてください。');
   }
@@ -242,7 +295,7 @@ function nextAfterBuild() {
 }
 
 function nextAfterUsertest() {
-  if (state.figma?.enabled && !state.figma.done) {
+  if (state.figma?.enabled && gateOn('figma') && !state.figma.done) {
     const f = state.figma;
     f.max ??= config.defaults?.figma_max ?? 5;
     f.iteration = (f.iteration || 0) + 1;
@@ -333,6 +386,7 @@ function main() {
   J = (...xs) => R(job, ...xs);
   pass = state.pass_score ?? config.defaults?.pass_score ?? 8;
   interactive = (config.interactive_media || ['ui', 'web', 'prototype', 'renewal', 'email']).includes(state.medium);
+  state.started_at ||= now();
 
   // ---------- delivering → done ----------
   if (state.phase === 'delivering') {
@@ -357,7 +411,7 @@ function main() {
       save();
       fs.rmSync(crashFile, { force: true });
       const name = path.basename(request);
-      notify(rep.ok ? `${name} を納品しました（${label()}）。報告は ${rep.report}` : `${name}：納品の報告を確認できませんでした（${rep.why}）`);
+      notify(rep.ok ? `${name} を納品しました（${label()}・${costLine(summary)}）。報告は ${rep.report}` : `${name}：納品の報告を確認できませんでした（${rep.why}）`);
       process.exit(0);
     }
     const pr = findPr();
@@ -383,7 +437,7 @@ function main() {
     save();
     fs.rmSync(crashFile, { force: true });
     const name = path.basename(request);
-    notify(pr.ok ? `${name} を納品しました（${label()}）` : `${name}：PR を確認できませんでした（${pr.why}）`);
+    notify(pr.ok ? `${name} を納品しました（${label()}・${costLine(summary)}）` : `${name}：PR を確認できませんでした（${pr.why}）`);
     process.exit(0);
   }
 
@@ -397,8 +451,10 @@ function main() {
     if (b.iteration > b.max) {
       b.iteration -= 1;
       state.result = 'max_reached';
-      log(`\n## build が上限 ${b.max} 回に到達\n`);
-      endPart(`HTML の採点が上限 ${b.max} 回で合格しませんでした。最後の講評は ${job}/verdicts/ の最新です。`);
+      const best = restoreBest();
+      log(`\n## build が上限 ${b.max} 回に到達${best ? `。点数が一番高かった build ${best.n}（${round2(best.score)}）の版に戻した` : ''}\n`);
+      commit(`build 上限${best ? `: build ${best.n} の版に戻した` : ''}`);
+      endPart(`HTML の採点が上限 ${b.max} 回で合格しませんでした。${best ? `点数が一番高かった build ${best.n}（${round2(best.score)}）の版を納品します（最後の回より良かったため）。` : ''}最後の講評は ${job}/verdicts/ の最新です。`);
     }
 
     const shots = `shots/build-${n}`;
@@ -417,7 +473,7 @@ function main() {
     state.shoot_failures = 0;
 
     const checks = JSON.parse(fs.readFileSync(J(shots, 'checks.json'), 'utf8'));
-    const hard = ['overflow', 'contrast', 'minFont', 'brokenLinks', 'fonts', 'type', 'brand'].flatMap((k) => checks[k] || []);
+    const hard = gateOn('machine') ? ['overflow', 'contrast', 'minFont', 'brokenLinks', 'fonts', 'type', 'brand'].flatMap((k) => checks[k] || []) : [];
     if (hard.length) {
       writeVerdict(`build-${n}`, `VERDICT: FAIL\nSCORES: machine=${hard.length}\n\n## ハードフェイル（機械チェック）\n${hard.map((x) => `- ${x}`).join('\n')}\n\n## 修正リスト（優先度順）\n${hard.map((x, i) => `${i + 1}. ${x} → 解消する`).join('\n')}`);
       record('build', b.iteration, 'FAIL', { machine: hard.length }, { machine: true });
@@ -426,15 +482,18 @@ function main() {
       block(`build ${n}/${b.max}：機械チェックで ${hard.length} 件落ちました。designer サブエージェントを新しく呼び、「修正モード。${job}/verdicts/build-${n}.md を全部直す」と伝えてください。終わったら2行で要約してターンを終えてください。`);
     }
 
-    const e = runAgent('critic',
-      `案件 ${job} の build ${n} を採点してください。媒体は ${state.medium}、合格点は ${pass}。スクショは ${job}/${shots}/（機械チェックは同じフォルダの index.md）。`,
-      'Read,Glob,Grep,mcp__playwright');
+    const e = gateOn('critic')
+      ? runAgent('critic',
+        `案件 ${job} の build ${n} を採点してください。媒体は ${state.medium}、合格点は ${pass}。スクショは ${job}/${shots}/（機械チェックは同じフォルダの index.md）。`,
+        'Read,Glob,Grep,mcp__playwright')
+      : { ok: true, out: 'VERDICT: PASS\nSCORES: \n\n（studio/config.json の gate.critic が false のため、critic の採点を省いた）', cost: null, ms: null };
     const m = e.out.match(/^VERDICT:\s*(PASS|FAIL)/m);
     if (!e.ok || !m) { b.iteration -= 1; evalError(`build ${n}`, e.err || e.out.slice(0, 500)); }
     state.errors = 0;
     writeVerdict(`build-${n}`, e.out);
     const sc = parseScores(e.out);
-    record('build', b.iteration, m[1], sc.obj);
+    snapshot(n, scoreOf(sc.obj));
+    record('build', b.iteration, m[1], sc.obj, { cost_usd: e.cost, eval_ms: e.ms });
     log(`\n## build ${n} — ${m[1]} — ${sc.line}\n- スクショ: ${shots}/\n- 講評: verdicts/build-${n}.md\n`);
     commit(`build ${n} ${m[1]} ${sc.line}`);
 
@@ -463,7 +522,7 @@ function main() {
     state.errors = 0;
     writeVerdict(`usertest-${n}`, e.out);
     const sc = parseScores(e.out);
-    record('usertest', u.iteration, m[1], sc.obj);
+    record('usertest', u.iteration, m[1], sc.obj, { cost_usd: e.cost, eval_ms: e.ms });
     log(`\n## usertest ${n} — ${m[1]} — ${sc.line}\n- 記録: verdicts/usertest-${n}.md\n`);
     commit(`usertest ${n} ${m[1]} ${sc.line}`);
 

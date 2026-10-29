@@ -12,5 +12,8 @@
         ]
       }
     ]
-  }
+  },
+  "modules": [
+    "../mods/progress.ts"
+  ]
 }

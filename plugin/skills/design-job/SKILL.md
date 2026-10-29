@@ -25,7 +25,8 @@ jobs/<id>/              依頼フォルダ：brief.md（依頼全体）、previe
 1. 案件 id を `YYYYMMDD-<英語の短い slug>` で決め、`jobs/<id>/` を作る。
    - **ブランチ**：既定のブランチ（`git symbolic-ref --short refs/remotes/origin/HEAD`、なければ `main`）の最新から `design/<id>` を作って切り替える（`git switch -c design/<id> origin/<既定のブランチ>`。リモートがなければ今の既定のブランチから）。1件 = 1ブランチ = 1 PR なので、この依頼を受けたこと自体がブランチを作る依頼にあたる。
    - 利用者の指示でブランチを作ることが禁じられているなど、作れない事情があるときだけ、ここで一度だけ依頼者に確認する。作らずに既定のブランチのまま進めない（関門 hook が差し戻す）。
-   - git のリポジトリでなければ、ブランチも PR も作らず、`.loop/state.json` に `"git": false` を書いて進める。
+   - git のリポジトリでないとき、または `studio/config.json` の `defaults.git` が `false` のときは、ブランチも PR も作らず、`.loop/state.json` に `"git": false` を書いて進める（納品は 4 の「ローカル納品」）。
+   - git でも GitHub のリモートがない（リモートなし、GitLab など）ときは、ブランチは作るが push と PR はしない（納品は 4 の「ローカル納品」。案件のブランチは持ち主が手元でマージする）。
 2. `${CLAUDE_PLUGIN_ROOT}/studio/brief-template.md` を `jobs/<id>/brief.md` にコピーし、依頼文から埋める。依頼文にないことは「未記入」のまま残す（ここで推測を書かない）。`studio/taste/references/good/` が空で `rules.md` に箇条もなければ、止まらずに進め、依頼者への質問に「審美眼が空のため、好みを反映できていない。`/tanren:studio-init` の審美眼の種まきを勧める」と書く。
 3. **仮の画像の扱いを聞く**：brief の「仮の画像」が「未記入」で、依頼者がこの会話にいる（スケジュールタスクや Slack の取り込みで始まった案件ではない）ときは、ここで一度だけ聞く。0 の 1 でブランチのことを聞くなら、同じ質問にまとめる。
    - 聞くこと：「モックの中で、支給素材がない画像の場所をどう仮置きするか」。選択肢は「生成アート（おすすめ）：色面と線画を貼り合わせた抽象の絵を、場所ごとに重ならないように作って敷く」と「グレー：用途と比率を書いた無地の面」。
@@ -75,8 +76,8 @@ brief の「仮の画像」が「生成アート」なら、続けて `node ${CL
 2. **撮影**：方向性ごとに `node ${CLAUDE_PLUGIN_ROOT}/scripts/shoot.mjs --job <part> --from explore/dN --only key --out shots/explore-r01/dN`。
 3. **勝ち抜き戦**：媒体ごとに judge サブエージェントを呼び、`<part>/shots/explore-r01/` を比べさせる。出力を `<part>/verdicts/explore-r01.md` に保存する。
 4. **方向性ごとに Artifact で公開**：人間が3案を見比べられるよう、媒体 × 方向性ごとに別の Artifact を publish する（`artifact-design` スキルを読んでから）。
-   - `<part>/explore/dN.html` に一覧ページを書く：媒体名、方向性 dN の名前と狙い（directions.md から）、`explore/dN/<…>/index.html` への相対リンク。
-   - publish：`file_path` は `<part>/explore/dN.html`、`root` は `<part>`、`files` には `explore/dN/` 以下の全ファイルと参照している `assets/` のファイルを、媒体フォルダからの相対パスのまま載せる。`icon` は `layout`、`description` は「<案件名> <媒体> 探索 rNN dN：<方向性名>」。
+   - 一覧ページは **媒体フォルダの直下** に `<part>/explore-rNN-dN.html` として書く（`explore/` の中に置かない。Artifact は一覧ページを公開物のいちばん上に置くので、下のフォルダに置くと中のリンクがずれて「This content is unavailable」になる）。中身は媒体名、方向性 dN の名前と狙い（directions.md から）、`explore/dN/<…>/index.html` への相対リンク（媒体フォルダから見たパス）。
+   - 公開するファイルを集めて確かめる：`node ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-files.mjs --root <part> --page <part>/explore-rNN-dN.html`。リンク切れや root の外への参照があれば一覧が出て止まるので、直してからもう一度実行する。通ったら出力の `file_path`・`root`・`files` をそのまま publish に渡す（`files` を手で書かない）。`icon` は `layout`、`description` は「<案件名> <媒体> 探索 rNN dN：<方向性名>」。
    - URL を `<part>/artifact.json` の `explore.rNN.dN` に書く（`explore/` は git に入らないので URL はここに残す）。r02 では新しい方向性なので新しい Artifact を作る。
    - Artifact ツールが使えなければ飛ばし、progress.md に書く。
 5. **最初の数件は人間が選ぶ**：納品まで進んだ依頼（`jobs/*/summary.json` があるもの）が `studio/config.json` の `defaults.human_pick_first`（なければ 5）より少なく、依頼者がこの会話にいる（スケジュールタスクや Slack の取り込みで始まった案件ではない）ときは、ここで止まって依頼者に選んでもらう。媒体が複数でも、聞くのは1回にまとめる。
@@ -108,7 +109,7 @@ hook が出す指示は次のどれか：
 ## 4. 納品
 1. **プレビューを Claude Artifact で公開する**（Vercel は使わない）。人間はこの URL でモックを開き、プロトタイプを触ってレビューする。
    - `artifact-design` スキルを読んでから、`jobs/<id>/preview.html` に一覧ページを書く：案件名、brief の一文要約、媒体ごとの見出しと、その媒体の `manifest.json` の成果物ごとに `<媒体>/work/<…>/index.html` への相対リンクとサイズ。成果物の HTML 本体は手を加えずそのまま載せる。
-   - Artifact ツールで publish する：`file_path` は `jobs/<id>/preview.html`、`root` は `jobs/<id>`、`files` には各媒体の `work/` 以下の全ファイルと、成果物が参照する `assets/` のファイルを、依頼フォルダからの相対パスのまま載せる（例：`{"lp/work/top/index.html": "lp/work/top/index.html", "lp/assets/hero.jpg": "lp/assets/hero.jpg", "banner/work/300x250/index.html": "banner/work/300x250/index.html"}`）。`icon` は `layout`、`description` は案件名と媒体。
+   - 公開するファイルを集めて確かめる：`node ${CLAUDE_PLUGIN_ROOT}/scripts/artifact-files.mjs --root jobs/<id> --page jobs/<id>/preview.html`。止まったらリンク切れを直してやり直し、通ったら出力の `file_path`・`root`・`files` をそのまま Artifact ツールの publish に渡す（`files` を手で書かない。中身は各媒体の `work/` と、成果物が参照する `assets/` のファイル。例：`{"lp/work/top/index.html": "lp/work/top/index.html", "lp/assets/hero.jpg": "lp/assets/hero.jpg", "banner/work/300x250/index.html": "banner/work/300x250/index.html"}`）。`icon` は `layout`、`description` は案件名と媒体。
    - 返ってきた URL を `jobs/<id>/artifact.json` の `url` と `published`（探索の `explore` はそのまま残す。例：`{ "url": "<URL>", "published": "YYYY-MM-DD", "explore": { "r01": { "d1": "<URL>", "d2": "<URL>", "d3": "<URL>" } } }`）と `progress.md` に書く。修正回はこの URL を更新し、新しい URL を作らない。
    - Artifact は最初は非公開。他の人に見せるときは持ち主が claude.ai で共有する、と PR に書く。
    - Artifact ツールが使えない環境では公開を飛ばし、PR のプレビュー欄に「Artifact 未公開（この環境で使えなかった）」と書いて、人間への質問にも回す。
@@ -126,12 +127,13 @@ hook が出す指示は次のどれか：
 ## <案件名>
 媒体：<medium>, <medium> ／ 成果物：<n> 点
 プレビュー：<Artifact の URL>（非公開。共有は claude.ai から）
+かかった時間：<summary.json の minutes> 分 ／ 採点の費用：$<summary.json の eval_cost_usd>（critic と user-tester の分）
 
 ### <媒体>（`jobs/<id>/<媒体>/`）
 | 工程 | 結果 |
 |---|---|
 | 探索 | <採用した方向性 dN（名前）>。他案：<…>。各案の Artifact：d1 <URL> ／ d2 <URL> ／ d3 <URL> |
-| HTML | <scores>（<n> 回目で合格 ／ 未合格：上限 <n> 回） |
+| HTML | <scores>（<n> 回目で合格 ／ 未合格：上限 <n> 回。点数が一番高かった回に戻したときは「build NN の版を納品」） |
 | ユーザーテスト | <tasks / blockers>（対象外なら「なし」、上限なら「未合格：上限 <n> 回」） |
 | Figma | <scores>（<url>、00 Review から見る。未接続・未検品ならそう書く） |
 
