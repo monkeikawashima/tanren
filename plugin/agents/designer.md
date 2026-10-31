@@ -26,6 +26,7 @@ model: opus
 
 ## 展開・修正モード
 - `<job>/work/` 以下に全成果物を作る・直す。manifest に全成果物が載っているか確認する。
+- 指示で work/ の代わりのフォルダ（例：`<job>/alt/a/`。点が止まったときの別解）を指定されたら、そこだけを直し、撮影は `shoot.mjs --from alt/a --out shots/alt-NN/a` にする。work/ には触らない。
 - `node ${CLAUDE_PLUGIN_ROOT}/scripts/shoot.mjs --out shots/draft` で撮り、PNG と `shots/draft/index.md` の機械チェックを全部見る。はみ出し・コントラスト不足・小さすぎる文字・リンク切れ・書体の置き換わりは、止まる前に自分で直す。
 - `<job>/progress.md` に追記する：
 

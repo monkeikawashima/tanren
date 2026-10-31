@@ -12,11 +12,17 @@
 // 全部の媒体が終わってから1回だけ納品する（1件の依頼 = 1ブランチ = 1 PR）。state.job は今の媒体のフォルダ。
 // 上限に達しても止めずに納品へ進め、PR に「未合格」と書かせる（人間が判断できるように）。
 // 差し戻しはどれも回数を数え、終わらなくなる経路を作らない。hook 自体が落ちたときも数えて、続けば納品か停止に回す。
+//
+// レーン（state.lanes）：媒体 × 上位案を並列に磨くときの形。親の hook はレーンごとに自分自身を子プロセスとして
+// 同時に起動し（TANREN_LANE_STATE にレーンの状態ファイル）、結果を1つの指示にまとめて返す。子は今までどおり
+// build → usertest まで回し、納品の代わりに review で止まる（review_stop）。全レーンが review になったら、
+// 親は「最後の確認」に進ませて止まる（status: review）。最後の確認で選んだレーンは lanes.mjs --finish が
+// 普通の状態（parts）に戻し、finish フェーズから Figma（選んだときだけ）と納品に進む。
 
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 if (process.env.DESIGN_LOOP_EVALUATOR === '1') process.exit(0);
@@ -26,8 +32,11 @@ const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const plugin = process.env.CLAUDE_PLUGIN_ROOT || path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const R = (...xs) => path.join(root, ...xs);
 const P = (...xs) => path.join(plugin, ...xs);
-const stateFile = R('.loop', 'state.json');
-const crashFile = R('.loop', 'gate-crash.json');
+// レーンの子として起動されたときは、そのレーンの状態ファイルを読む。commit は親がまとめて1回にする
+const laneFile = process.env.TANREN_LANE_STATE ? path.resolve(process.env.TANREN_LANE_STATE) : null;
+const commitLog = process.env.TANREN_COMMIT_LOG || null;
+const stateFile = laneFile || R('.loop', 'state.json');
+const crashFile = laneFile ? laneFile.replace(/\.json$/, '') + '.crash.json' : R('.loop', 'gate-crash.json');
 try { fs.readFileSync(0, 'utf8'); } catch {}
 if (!fs.existsSync(stateFile)) process.exit(0);
 
@@ -58,7 +67,7 @@ function block(reason) {
 }
 
 function notify(msg) {
-  if (os.platform() !== 'darwin') return;
+  if (laneFile || os.platform() !== 'darwin') return;
   spawnSync('osascript', ['-e', `display notification "${msg.replace(/["\\]/g, '')}" with title "tanren" sound name "Glass"`]);
 }
 
@@ -98,6 +107,7 @@ function commit(msg) {
   if (!useGit()) return;
   const paths = [request, 'studio/metrics/runs.jsonl'].filter((p) => fs.existsSync(R(p)));
   const name = path.basename(request) + (job !== request ? `/${path.basename(job)}` : '');
+  if (commitLog) { fs.appendFileSync(commitLog, `${name} ${msg}\n`); return; }
   spawnSync('git', ['add', ...paths], { cwd: root });
   spawnSync('git', ['commit', '-q', '-m', `tanren: ${name} ${msg}`, '--', ...paths], { cwd: root });
 }
@@ -140,11 +150,26 @@ function writeRequestSummary(extra = {}) {
   return summary;
 }
 
+// 採点役のブラウザの設定。root で動く環境（クラウドのコンテナなど）では Chromium のサンドボックスが使えないので、
+// --no-sandbox を足した写しを .loop/ に作って渡す（足さないと採点役がブラウザを開けず、縮小スクショだけで採点してしまう）
+function mcpConfig() {
+  const base = P('mcp', 'playwright.json');
+  if (typeof process.getuid !== 'function' || process.getuid() !== 0) return base;
+  const j = readJson(base);
+  const s = j?.mcpServers?.playwright;
+  if (!s || !Array.isArray(s.args)) return base;
+  if (!s.args.includes('--no-sandbox')) s.args.push('--no-sandbox');
+  const f = R('.loop', 'playwright-mcp.json');
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  fs.writeFileSync(f, JSON.stringify(j, null, 2) + '\n');
+  return f;
+}
+
 function runAgent(agent, prompt, tools) {
   // --plugin-dir で、この hook と同じ版のプラグインを採点プロセスにも読ませる
   const args = ['-p', prompt, '--agent', `tanren:${agent}`, '--plugin-dir', plugin,
     '--allowedTools', tools, '--output-format', 'json',
-    '--mcp-config', P('mcp', 'playwright.json'), '--strict-mcp-config'];
+    '--mcp-config', mcpConfig(), '--strict-mcp-config'];
   const budget = state.critic_budget_usd ?? config.budget?.critic_usd_per_run;
   if (budget) args.push('--max-budget-usd', String(budget));
   const r = spawnSync('claude', args, {
@@ -241,6 +266,13 @@ function startPart(p) {
   state.usertest = { iteration: ui, max: ui + (d.usertest_max ?? 3) };
   state.figma = { enabled: !!state.figma?.enabled, iteration: fi, max: fi + (d.figma_max ?? 5) };
   for (const k of ['result', 'errors', 'shoot_failures', 'delivery_note', 'part_cost_usd']) delete state[k];
+  // 最後の確認のあと（lanes.mjs --finish）：磨き終わったレーンは finish から、直しのあるレーンは build から始める
+  if (p.phase) {
+    const s = readJson(R(p.path, 'summary.json')) || {};
+    state.phase = p.phase;
+    if (s.build) state.build = { ...s.build, iteration: bi, max: state.build.max };
+    if (s.usertest) state.usertest = { ...s.usertest, iteration: ui, max: state.usertest.max, done: p.phase === 'finish' && !!s.usertest.done };
+  }
 }
 
 // この媒体の工程を終える（合格・上限・打ち切りのどれでも）。次の媒体があればそちらへ、なければ納品へ
@@ -259,7 +291,23 @@ function endPart(note) {
   block(`${finished}\n次は ${next.medium}（${next.path}）を採点します。${next.path}/work/ がまだ空なら、designer サブエージェントを新しく呼んで design-job の「3. 磨き」の 2 のとおり展開させ、終わったら2行で要約してターンを終えてください。展開済みなら、何も変更せずにターンを終えてください。`);
 }
 
+// レーンの子：納品の代わりに review で止まり、親が全レーンをそろえて最後の確認に進ませる
+function toReview(note) {
+  state.status = 'review';
+  state.phase = 'review';
+  state.review_note = note;
+  state.review_at = now();
+  log(`\n## 最後の確認を待つ（${now()}）\n${note}\n`);
+  writeSummary({ note });
+  record('review', 0, state.result || 'passed', {});
+  commit(`review: ${note.slice(0, 60)}`);
+  save();
+  fs.rmSync(crashFile, { force: true });
+  process.exit(0);
+}
+
 function deliver(note) {
+  if (state.review_stop) return toReview(note);
   if (state.parts) {
     const rs = (state.part_results || []).filter(Boolean);
     state.result = rs.map((r) => r.result).find((r) => r !== 'passed') || 'passed';
@@ -277,13 +325,13 @@ function deliver(note) {
   const unpassed = state.result && state.result !== 'passed'
     ? `結果は「${label()}」です。${local ? '報告' : 'PR '}の冒頭の注意書きと結果の表に、そのまま書いてください。` : '';
   if (local) {
-    block(`${note}\nこのリポジトリには PR を作りません（${local}）。design-job スキルの「4. 納品」の「ローカル納品」に従って、PR 本文と同じ形の報告を ${request}/delivery.md に書き、${request}/delivery.json に "local" と "branch" を書いて、通知してからターンを終えてください。${unpassed}次に止まったとき、hook が報告があるかを確かめます。`);
+    block(`${note}\nこのリポジトリには PR を作りません（${local}）。design-job スキルの「5. 納品」の「ローカル納品」に従って、PR 本文と同じ形の報告を ${request}/delivery.md に書き、${request}/delivery.json に "local" と "branch" を書いて、通知してからターンを終えてください。${unpassed}次に止まったとき、hook が報告があるかを確かめます。`);
   }
   const existing = knownPr();
   const how = existing
     ? `新しい PR は作らず、ブランチを push して既存の PR（${existing}）を更新し、PR にコメントで今回の結果を返し`
     : `ブランチを push して PR を${state.parts ? '1つ' : ''}作成し`;
-  block(`${note}\ndesign-job スキルの「4. 納品」に従って、${how}、PR の URL を ${request}/delivery.json の "pr" に書いて、通知してからターンを終えてください。${unpassed}次に止まったとき、hook が PR があるかを確かめます。`);
+  block(`${note}\ndesign-job スキルの「5. 納品」に従って、${how}、PR の URL を ${request}/delivery.json の "pr" に書いて、通知してからターンを終えてください。${unpassed}次に止まったとき、hook が PR があるかを確かめます。`);
 }
 
 function nextAfterBuild() {
@@ -353,8 +401,71 @@ function readJsonText(s) { try { return JSON.parse(s); } catch { return null; } 
 function findReport() {
   const rel = path.join(request, 'delivery.md');
   if (!fs.existsSync(R(rel))) return { ok: false, why: `${rel} がない` };
-  if (fs.statSync(R(rel)).mtimeMs < (state.delivering_at || 0)) return { ok: false, why: `${rel} が今回の結果で書き直されていない` };
+  // ファイルの更新時刻は時計の刻みが粗く、納品に入った直後に書いた報告が少し前の時刻になることがあるので、100ms の余裕を持たせる
+  if (fs.statSync(R(rel)).mtimeMs < (state.delivering_at || 0) - 100) return { ok: false, why: `${rel} が今回の結果で書き直されていない` };
   return { ok: true, report: rel };
+}
+
+// ---------- レーン（親） ----------
+// 走っているレーンを全部同時に子プロセスで判定し、指示を1つにまとめて返す
+const laneState = (l) => readJson(R(l.state)) || {};
+
+async function runLanes() {
+  checkBranch();
+  const active = state.lanes.filter((l) => laneState(l).status === 'running');
+  if (!active.length) return allReviewed();
+  const logFile = R('.loop', 'lanes', 'commits.log');
+  fs.mkdirSync(path.dirname(logFile), { recursive: true });
+  fs.rmSync(logFile, { force: true });
+  const self = fileURLToPath(import.meta.url);
+  const results = await Promise.all(active.map((l) => new Promise((ok) => {
+    const c = spawn(process.execPath, [self], {
+      cwd: root, stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, TANREN_LANE_STATE: R(l.state), TANREN_COMMIT_LOG: logFile },
+    });
+    let out = '', err = '';
+    c.stdout.on('data', (d) => { out += d; });
+    c.stderr.on('data', (d) => { err += d; });
+    c.on('close', (code) => ok({ lane: l, out: out.trim(), err, code }));
+    c.on('error', (e) => ok({ lane: l, out: '', err: String(e), code: 1 }));
+  })));
+
+  // レーンの commit を1回にまとめる（同時に git を触ると index.lock で落ちるため）
+  if (useGit() && fs.existsSync(logFile)) {
+    const msgs = fs.readFileSync(logFile, 'utf8').trim().split('\n').filter(Boolean);
+    const paths = [request, 'studio/metrics/runs.jsonl'].filter((p) => fs.existsSync(R(p)));
+    if (msgs.length && paths.length) {
+      spawnSync('git', ['add', ...paths], { cwd: root });
+      spawnSync('git', ['commit', '-q', '-m', `tanren: ${msgs.join(' / ')}`.slice(0, 1000), '--', ...paths], { cwd: root });
+    }
+  }
+
+  const lines = [];
+  for (const r of results) {
+    const j = readJsonText(r.out);
+    if (j?.reason) lines.push(`### レーン ${r.lane.name}（${r.lane.path}）\n${j.reason}`);
+    else if (r.code !== 0) lines.push(`### レーン ${r.lane.name}（${r.lane.path}）\n関門の子プロセスが異常終了しました。${r.lane.state} と ${r.lane.path} を確かめて直してください：${r.err.slice(-500)}`);
+  }
+  if (!state.lanes.some((l) => laneState(l).status === 'running')) return allReviewed();
+  save();
+  fs.rmSync(crashFile, { force: true });
+  if (!lines.length) block('どのレーンにも指示はありません。何も変更せずにターンを終えてください（hook がもう一度判定します）。');
+  const waiting = state.lanes.filter((l) => laneState(l).status === 'review').map((l) => l.name);
+  block(`レーンごとの判定です（${active.map((l) => l.name).join('・')}${waiting.length ? `。${waiting.join('・')} は磨き終わって待機中` : ''}）。下の指示はレーンごとに独立しています。サブエージェントを呼ぶ指示は、全レーン分を1つのメッセージで同時に呼んでください。「何も変更せずにターンを終える」とあるレーンには何もしません。全部終わったら2行で要約してターンを終えてください（hook が全レーンを同時に判定し直します）。\n\n${lines.join('\n\n')}`);
+}
+
+function allReviewed() {
+  state.status = 'review';
+  state.phase = 'review';
+  state.review_at = now();
+  const rows = state.lanes.map((l) => {
+    const s = laneState(l);
+    return `- ${l.name}（${l.path}）：${RESULT_LABEL[s.result || 'passed'] || s.result}／HTML ${s.build?.passed || '未合格'}／ユーザーテスト ${s.usertest?.result || 'なし'}`;
+  });
+  save();
+  fs.rmSync(crashFile, { force: true });
+  notify(`${path.basename(request)}：全レーンの磨きが終わりました。最後の確認を待っています`);
+  block(`全レーンの工程が終わりました。\n${rows.join('\n')}\ndesign-job スキルの「4. 最後の確認」に進んでください（hook はここで止まります）。`);
 }
 
 // hook 自体が落ちた（state.json が壊れている、案件フォルダが欠けている等）。数えて、3回で納品か停止に回す
@@ -368,7 +479,7 @@ function crashed(err) {
     process.exit(0);
   }
   fs.rmSync(crashFile, { force: true });
-  if (state && job && request && state.phase !== 'delivering') {
+  if (state && job && request && state.phase !== 'delivering' && !(state.lanes && !laneFile)) {
     try { state.result = 'error'; endPart(`関門 hook が3回続けて失敗したため、ここまでの状態で打ち切ります：${msg}`); } catch {}
   }
   try { if (state) { state.status = state.phase === 'delivering' ? 'done' : 'stopped'; state.stopped_reason = msg; save(); } } catch {}
@@ -380,6 +491,12 @@ function main() {
   state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
   if (!['running', 'delivering'].includes(state.status)) process.exit(0);
   config = readJson(R('studio', 'config.json')) || {};
+  if (state.lanes && !laneFile) {
+    request = state.request;
+    job = request;
+    J = (...xs) => R(job, ...xs);
+    return runLanes();
+  }
   job = state.job;
   request = state.request || job;
   if (!job || !fs.existsSync(R(job))) throw new Error(`state.json の job（${job}）のフォルダがない`);
@@ -396,7 +513,7 @@ function main() {
       if (!rep.ok) {
         state.pr_checks = (state.pr_checks || 0) + 1;
         if (state.pr_checks < 3) {
-          block(`納品の報告を確認できませんでした（${rep.why}）。design-job の「4. 納品」の「ローカル納品」に従って、${request}/delivery.md に今回の結果の報告を書いてからターンを終えてください（あと ${3 - state.pr_checks} 回で、報告なしとして止めます）。`);
+          block(`納品の報告を確認できませんでした（${rep.why}）。design-job の「5. 納品」の「ローカル納品」に従って、${request}/delivery.md に今回の結果の報告を書いてからターンを終えてください（あと ${3 - state.pr_checks} 回で、報告なしとして止めます）。`);
         }
         log(`\n## 納品の報告を確認できないまま止めた（${rep.why}）\n`);
       }
@@ -418,7 +535,7 @@ function main() {
     if (!pr.ok) {
       state.pr_checks = (state.pr_checks || 0) + 1;
       if (state.pr_checks < 3) {
-        block(`PR を確認できませんでした（${pr.why}）。design-job の「4. 納品」の 2 に従って、ブランチ ${state.branch || ''} を push し、PR を作って（既にあれば同じ PR に push して）、URL を ${request}/delivery.json の "pr" に書いてからターンを終えてください。gh が使えないなどで作れないときは、理由を ${request}/progress.md に書いてターンを終えてください（あと ${3 - state.pr_checks} 回で、PR なしとして止めます）。`);
+        block(`PR を確認できませんでした（${pr.why}）。design-job の「5. 納品」の 2 に従って、ブランチ ${state.branch || ''} を push し、PR を作って（既にあれば同じ PR に push して）、URL を ${request}/delivery.json の "pr" に書いてからターンを終えてください。gh が使えないなどで作れないときは、理由を ${request}/progress.md に書いてターンを終えてください（あと ${3 - state.pr_checks} 回で、PR なしとして止めます）。`);
       }
       log(`\n## PR を確認できないまま止めた（${pr.why}）\n`);
     }
@@ -441,9 +558,12 @@ function main() {
     process.exit(0);
   }
 
+  // ---------- finish（最後の確認のあと。Figma を選んでいれば Figma、なければ納品へ） ----------
+  if (state.phase === 'finish') nextAfterUsertest();
+
   // ---------- build ----------
   if (state.phase === 'build') {
-    checkBranch();
+    if (!laneFile) checkBranch();
     const b = (state.build ||= { iteration: 0, max: config.defaults?.build_max ?? 10 });
     b.max ??= config.defaults?.build_max ?? 10;
     b.iteration += 1;
@@ -572,4 +692,7 @@ function main() {
   process.exit(0);
 }
 
-try { main(); } catch (err) { crashed(err); }
+try {
+  const r = main();
+  if (r && typeof r.then === 'function') r.catch((err) => { try { crashed(err); } catch { process.exit(0); } });
+} catch (err) { crashed(err); }

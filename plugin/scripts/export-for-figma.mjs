@@ -9,10 +9,13 @@
 //   - 画像と CSS 背景画像を data URI に埋め込む
 //   - アニメーションは最終フレーム（manifest.frames の最後）で止めて、値をインラインに書き込む
 //   - script タグを外す（見た目は DOM に焼き込み済み）
+//   - ブラウザが実際に折り返している位置に <br> を入れる（html_to_figma は文節改行・<wbr> を再現しないため）
+//   - <select> を、閉じた状態の見た目の箱に置き換える（Figma で中身が崩れるため）
+//   - file:// の画像と CSS は、ブラウザ側で読めなかった分も最後に Node 側で data URI に埋め込む
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 // playwright と axe は使う側のリポジトリに入れたものを読む（プラグインの置き場所には node_modules がない）
@@ -36,7 +39,8 @@ const outDir = path.join(root, 'figma', 'export');
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch();
+// file:// のページから、同じフォルダの CSS（cssRules）と画像（fetch）を読めるようにする
+const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
 const written = [];
 
 for (const item of items) {
@@ -74,6 +78,56 @@ for (const item of items) {
           if (!['offset', 'easing', 'composite', 'computedOffset'].includes(p)) props.add(p);
         }
         for (const p of props) el.style[p] = cs[p];
+      }
+
+      // 1.5 折り返しを <br> で焼き込む。改行の入る要素は幅を固定して、Figma で縮んで折り返し位置が変わらないようにする
+      {
+        const isBlock = (el) => { const dsp = getComputedStyle(el).display; return !dsp.startsWith('inline') || ['inline-block', 'inline-flex', 'inline-grid'].includes(dsp); };
+        const blockOf = (n) => { let e = n.parentElement; while (e && !isBlock(e)) e = e.parentElement; return e; };
+        const last = new Map();
+        const inserts = [];
+        const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+        let n;
+        while ((n = tw.nextNode())) {
+          if (n.nodeType === 1) { if (n.tagName === 'BR') last.set(blockOf(n), null); continue; }
+          const pe = n.parentElement;
+          if (!pe || pe.closest('script,style,textarea,select,option,svg,[aria-hidden="true"]')) continue;
+          if (getComputedStyle(pe).whiteSpace.startsWith('pre')) continue;
+          const blk = blockOf(n);
+          const r = document.createRange();
+          for (let i = 0; i < n.data.length; i++) {
+            r.setStart(n, i); r.setEnd(n, i + 1);
+            const rc = r.getClientRects()[0];
+            if (!rc || (rc.width === 0 && /\s/.test(n.data[i]))) continue;
+            const prev = last.get(blk);
+            if (prev && rc.top > prev.top + rc.height * 0.5 && rc.left < prev.left) inserts.push([n, i]);
+            last.set(blk, { top: rc.top, left: rc.left });
+          }
+        }
+        const frozen = new Map();
+        for (const [node] of inserts) { const bl = blockOf(node); if (bl && !frozen.has(bl)) frozen.set(bl, bl.getBoundingClientRect().width); }
+        for (const [bl, wd] of frozen) Object.assign(bl.style, { boxSizing: 'border-box', width: `${wd}px`, maxWidth: 'none', flexShrink: '0' });
+        for (let k = inserts.length - 1; k >= 0; k--) {
+          const [node, i] = inserts[k];
+          const br = document.createElement('br');
+          if (i === 0) node.parentNode.insertBefore(br, node); else { const tail = node.splitText(i); tail.parentNode.insertBefore(br, tail); }
+        }
+        document.querySelectorAll('wbr').forEach((e) => e.remove());
+        document.body.normalize();
+        // <select> を閉じた見た目の箱に
+        document.querySelectorAll('select').forEach((sel) => {
+          const cs = getComputedStyle(sel);
+          const box = document.createElement('div');
+          box.className = sel.className;
+          box.setAttribute('role', 'combobox');
+          for (const pr of ['width', 'height', 'padding-left', 'padding-top', 'padding-bottom', 'border', 'border-radius', 'background-color', 'color', 'font-size', 'font-weight', 'line-height', 'letter-spacing', 'font-family', 'box-sizing']) box.style.setProperty(pr, cs.getPropertyValue(pr));
+          Object.assign(box.style, { backgroundImage: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '16px' });
+          const label = document.createElement('span');
+          label.textContent = sel.options[sel.selectedIndex]?.text ?? '';
+          box.appendChild(label);
+          box.insertAdjacentHTML('beforeend', `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${cs.color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`);
+          sel.replaceWith(box);
+        });
       }
 
       // 2. CSS をビューポートで解決して平らにする（同一オリジン分だけ。Google Fonts などの外部 link は残す）
@@ -126,7 +180,7 @@ ${fullPage ? '' : `html,body{height:${h}px!important;overflow:hidden!important}`
     }, { w: vp.w, h: vp.h, fullPage: !!item.fullPage, lastFrame });
 
     const name = `${item.id}@${vp.w}x${vp.h}.html`;
-    fs.writeFileSync(path.join(outDir, name), html);
+    fs.writeFileSync(path.join(outDir, name), inlineLeftovers(html));
     const kb = Math.round(Buffer.byteLength(html) / 1024);
     written.push(`- ${path.relative(cwd, path.join(outDir, name))}（${kb} KB）`);
     if (kb > 45 * 1024) console.error(`注意: ${name} が 45MB を超えています（html_to_figma の上限は 50MB）`);
@@ -136,3 +190,20 @@ ${fullPage ? '' : `html,body{height:${h}px!important;overflow:hidden!important}`
 
 await browser.close();
 console.log(written.join('\n'));
+
+// ブラウザ側で埋め込めなかった file:// の CSS と画像を、Node 側で埋め込む（Figma は file:// を読めない）
+function inlineLeftovers(html) {
+  const mime = { '.png': 'image/png', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.woff2': 'font/woff2', '.woff': 'font/woff' };
+  const local = (href) => { try { const p = fileURLToPath(href); return fs.existsSync(p) ? p : null; } catch { return null; } };
+  html = html.replace(/<link[^>]*rel="stylesheet"[^>]*href="(file:\/\/[^"]+)"[^>]*>/g, (m, href) => {
+    const p = local(href);
+    return p ? `<style data-inlined="${path.basename(p)}">${fs.readFileSync(p, 'utf8')}</style>` : m;
+  });
+  return html.replace(/(src|href)="(file:\/\/[^"]+)"|url\(\s*['"]?(file:\/\/[^'")]+)['"]?\s*\)/g, (m, attr, a, u) => {
+    const p = local(a || u);
+    const type = p && mime[path.extname(p).toLowerCase()];
+    if (!type) return m;
+    const data = `data:${type};base64,${fs.readFileSync(p).toString('base64')}`;
+    return attr ? `${attr}="${data}"` : `url("${data}")`;
+  });
+}
