@@ -42,6 +42,8 @@ model: opus
 - プロトタイプは画面ごとに id を分け、`"entry": true` を最初の画面に付ける。
 
 ### <job>/tokens.json
+`<job>/references/site/index.md`（参考サイトから集めた全文・ロゴ・キャラクターなどの絵・書体と色）があれば先に読む。依頼者自身のサイトなら、そこにあるロゴと絵はブランド資産として images.json で支給素材扱いにし（`<job>/assets/brand/` に写したものを使う）、方向性の少なくとも1案で前に出す。コピーと事実の出典は `text.txt` だけにする。他社のサイトなら参考にだけ使う。
+
 `<job>/assets/ds/` にデザインシステムがあれば、`assets/ds/tokens.json` の値をそのまま写し（`"source": "design-system"` を付ける）、提案はしない。推定（inferred）の値も写すが、contract の未確定事項に「デザインシステムの推定の値」として並べる。デザインシステムの書体に和文がなければ、和文の書体だけ playbook の「文字組み」から選んで足し、未確定事項に書く。デザインシステムがなく、brief に既存トークンがあれば写す。どちらもなければ brief と taste から提案し、contract の未確定事項に「提案トークン」と書く。書体（和文・欧文・ウェイト）と文字サイズの段階は必ず入れる。決め方は `${CLAUDE_PLUGIN_ROOT}/studio/playbook.md` の「文字組み」に従う。方向性で書体を変えるなら、方向性ごとの書体を directions.md に書く。
 
 ### <job>/images.json

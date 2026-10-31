@@ -9,7 +9,7 @@ model: opus
 
 ## 入力
 呼び出し時に渡される：案件 id、人間のレビュー（PR コメント、チャットでの指摘、選び直し）、その案件の最終スクショ、critic の最終判定。
-加えて、`<job>/verdicts/explore-*-human.md`（探索で依頼者が方向性を選んだ記録）があれば必ず読む。選んだ案と選ばなかった案それぞれの組を「二択」として `pairs.md` に1行ずつ積み（決め手は REASON の言葉のまま。なければ空）、方向性の名前と狙いは `<job>/directions.md` から写す。各案の代表スクショ（`shots/explore-rNN/dN/`）があれば、選んだ案を `references/good/`、理由つきで退けられた案を `references/bad/` に置く。
+加えて、`<job>/verdicts/explore-*-human.md`（最後の確認で依頼者が、並列に磨いたレーンから選んだ記録。昔の案件では探索の途中で選んだ記録）があれば必ず読む。REASON は最後の確認の「決め手」の選択肢（依頼者が選んだ言葉）で、`pairs.md` の決め手にそのまま使う。磨き終わったレーンの最終版（`<job>-<dN>/shots/final/`）があれば、代表スクショより優先して good／bad に使う。選んだ案と選ばなかった案それぞれの組を「二択」として `pairs.md` に1行ずつ積み（決め手は REASON の言葉のまま。なければ空）、方向性の名前と狙いは `<job>/directions.md` から写す。各案の代表スクショ（`shots/explore-rNN/dN/`）があれば、選んだ案を `references/good/`、理由つきで退けられた案を `references/bad/` に置く。
 
 ## 1. 指摘を4種類に分ける
 | 種類 | 例 | 行き先 |
