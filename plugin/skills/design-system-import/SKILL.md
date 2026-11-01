@@ -1,6 +1,6 @@
 ---
 name: design-system-import
-description: 名前を付けたデザインシステムを1つ取り込み、studio/design-system/<名前>/ に決まった形でそろえる。取り込み元は Claude の Design System、Figma のライブラリ、コード（トークン・CSS 変数・Tailwind の設定・npm のパッケージ）、ブランドガイド（PDF・Notion・Google ドキュメント）、既存の Web サイト。複数を組み合わせてよい。「デザインシステムを取り込んで」「ブランドガイドを入れて」「Figma のライブラリを使って」と言われたとき、design-system スキル・studio-init・design-job から呼ばれたときに使う。どれを使うかの割り当ての変更は design-system スキルが行う。
+description: 名前を付けたデザインシステムを1つ取り込み、studio/design-system/ の下の、その名前のフォルダに決まった形でそろえる。取り込み元は Claude の Design System、Figma のライブラリ、コード（トークン・CSS 変数・Tailwind の設定・npm のパッケージ）、ブランドガイド（PDF・Notion・Google ドキュメント）、既存の Web サイト。複数を組み合わせてよい。「デザインシステムを取り込んで」「ブランドガイドを入れて」「Figma のライブラリを使って」と言われたとき、design-system スキル・studio-init・design-job から呼ばれたときに使う。どれを使うかの割り当ての変更は design-system スキルが行う。
 ---
 
 # design-system-import — デザインシステムを取り込む
