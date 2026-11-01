@@ -41,4 +41,4 @@ Project の会話に、小さな依頼を1つ書きます。
 
 > 社内勉強会の告知バナー。300x250 と 728x90。タイトル「デザインと AI の現在地」、11月20日 19時、オンライン。
 
-スレッドで `/tanren:design-job` が使え、PR が届けば完了です。Figma と Slack をつないでいれば、Figma の 00 Review と Slack の通知も届きます。
+スレッドで `/tanren:start` が使え、PR が届けば完了です。Figma と Slack をつないでいれば、Figma の 00 Review と Slack の通知も届きます。

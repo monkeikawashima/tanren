@@ -433,6 +433,9 @@ async function runLanes() {
   // レーンの commit を1回にまとめる（同時に git を触ると index.lock で落ちるため）
   if (useGit() && fs.existsSync(logFile)) {
     const msgs = fs.readFileSync(logFile, 'utf8').trim().split('\n').filter(Boolean);
+    // 書き込みは終わった順なので、レーンの順に並べ直す
+    const rank = (m) => active.findIndex((l) => path.basename(m.split(' ')[0]) === path.basename(l.path));
+    msgs.sort((a, b) => rank(a) - rank(b));
     const paths = [request, 'studio/metrics/runs.jsonl'].filter((p) => fs.existsSync(R(p)));
     if (msgs.length && paths.length) {
       spawnSync('git', ['add', ...paths], { cwd: root });
